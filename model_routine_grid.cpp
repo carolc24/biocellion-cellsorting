@@ -50,7 +50,7 @@ void ModelRoutine::updateIfGridVar( const BOOL pre, const S32 iter, const VIdx& 
     for (S32 elemIdx = 0; elemIdx < NUM_DIFFUSIBLE_ELEMS; elemIdx++ ) {
       REAL phi = nbrUBEnv.getPhi(0, 0, 0, elemIdx);
       const UBAgentData& ubAgentData = *(nbrUBAgentData.getConstPtr(0, 0, 0));
-      for(ubAgentIdx_t l = 0; l < (ubAgentIdx_t)ubAgentData.v_spAgent.size(), l++) {
+      for(ubAgentIdx_t l = 0; l < (ubAgentIdx_t)ubAgentData.v_spAgent.size(); l++) {
 	const SpAgent& spAgent = ubAgentData.v_spAgent[l];
 	S32 agentType = spAgent.state.getType();
 	phi += A_CELL_CHEMOATTRACTANT_SECRETION_RATE[agentType];
@@ -156,7 +156,7 @@ void ModelRoutine::updateIfGridAMRTags( const VIdx& vIdx, const NbrUBAgentData& 
 	return;
 }
 
-void ModelRoutine::updateIfSubgridDirichletBCVal( const S32 elemIdx, const S32 dim, const VReal& pos, const BOOL lowSide, const UBEnvModelVar a_ubEnvModelVar[3], const Vector<REAL> av_gridPhi[3]/* av_gridPhi[].size() == ratio * raito * ratio (ratio = Info::envAuxDataInfo.v_phiRatioFromIfGridToIfSubgrid[elemIdx]), use VIdx::getIdx3DTo1D() to index */, REAL& bcVal ) {
+void ModelRoutine::updateIfGridDirichletBCVal( const S32 elemIdx, const VReal& pos, const S32 dim, const BOOL lowSide, const UBEnvModelVar a_ubEnvModelVar[3], const Vector<REAL> av_gridPhi[3]/* av_gridPhi[].size() == ratio * raito * ratio (ratio = Info::envAuxDataInfo.v_phiRatioFromIfGridToIfSubgrid[elemIdx]), use VIdx::getIdx3DTo1D() to index */, REAL& bcVal ) {
 	/* MODEL START */
 
 	ERROR( "unimplemented." );
@@ -166,7 +166,7 @@ void ModelRoutine::updateIfSubgridDirichletBCVal( const S32 elemIdx, const S32 d
 	return;
 }
 
-void ModelRoutine::updateIfSubgridNeumannBCVal( const S32 elemIdx, const S32 dim, const VReal& pos, const BOOL lowSide, const UBEnvModelVar a_ubEnvModelVar[3], const Vector<REAL> av_gridPhi[3]/* av_gridPhi[].size() == ratio * raito * ratio (ratio = Info::envAuxDataInfo.v_phiRatioFromIfGridToIfSubgrid[elemIdx]), use VIdx::getIdx3DTo1D() to index */, REAL& bcVal ) {
+void ModelRoutine::updateIfGridNeumannBCVal( const S32 elemIdx, const VReal& pos, const S32 dim, const BOOL lowSide, const UBEnvModelVar a_ubEnvModelVar[3], const Vector<REAL> av_gridPhi[3]/* av_gridPhi[].size() == ratio * raito * ratio (ratio = Info::envAuxDataInfo.v_phiRatioFromIfGridToIfSubgrid[elemIdx]), use VIdx::getIdx3DTo1D() to index */, REAL& bcVal ) {
 	/* MODEL START */
 
 	ERROR( "unimplemented." );
@@ -176,7 +176,7 @@ void ModelRoutine::updateIfSubgridNeumannBCVal( const S32 elemIdx, const S32 dim
 	return;
 }
 
-void ModelRoutine::initPDEBufferGridPhi( const S32 pdeIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, Vector<REAL>& v_gridPhi/* [idx] */ ) {
+void ModelRoutine::initPDEBufferPhi( const S32 pdeIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, Vector<REAL>& v_gridPhi/* [idx] */ ) {
 	/* MODEL START */
 
   CHECK(v_gridPhi.size() == 0);
@@ -186,7 +186,7 @@ void ModelRoutine::initPDEBufferGridPhi( const S32 pdeIdx, const VIdx& startVIdx
 	return;
 }
 
-void ModelRoutine::initPDEBufferGridKappa( const S32 pdeIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, REAL& gridKappa ) {/* relevant only if v_gridPhiOutputDivideByKappa[pdeIdx] is set to true in updateFileOutputInfo() */
+void ModelRoutine::initPDEBufferKappa( const S32 pdeIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, REAL& gridKappa ) {/* relevant only if v_gridPhiOutputDivideByKappa[pdeIdx] is set to true in updateFileOutputInfo() */
 	/* MODEL START */
 
 	ERROR( "unimplemented." );
@@ -196,7 +196,7 @@ void ModelRoutine::initPDEBufferGridKappa( const S32 pdeIdx, const VIdx& startVI
 	return;
 }
 
-void ModelRoutine::updatePDEBufferGridKappa( const S32 pdeIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, REAL& gridKappa ) {
+void ModelRoutine::updatePDEBufferKappa( const S32 pdeIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, REAL& gridKappa ) {
 	/* MODEL START */
 
 	ERROR( "unimplemented." );
@@ -206,7 +206,7 @@ void ModelRoutine::updatePDEBufferGridKappa( const S32 pdeIdx, const VIdx& start
 	return;
 }
 
-void ModelRoutine::updatePDEBufferGridAlpha( const S32 elemIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, REAL& gridAlpha/* decay (-) */ ) {
+void ModelRoutine::updatePDEBufferAlpha( const S32 elemIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, REAL& gridAlpha/* decay (-) */ ) {
 	/* MODEL START */
 
 	ERROR( "unimplemented." );
@@ -216,7 +216,7 @@ void ModelRoutine::updatePDEBufferGridAlpha( const S32 elemIdx, const VIdx& star
 	return;
 }
 
-void ModelRoutine::updatePDEBufferGridBetaInPDEBufferRegion( const S32 elemIdx, const S32 dim, const VIdx& startVIdx0, const VIdx& startVIdx1, const VIdx& pdeBufferBoxSize, REAL& gridBeta ) {
+void ModelRoutine::updatePDEBufferBetaInPDEBufferRegion( const S32 elemIdx, const S32 dim, const VIdx& startVIdx0, const VIdx& startVIdx1, const VIdx& pdeBufferBoxSize, REAL& gridBeta ) {
 	/* MODEL START */
 
 	ERROR( "unimplemented." );
@@ -226,7 +226,7 @@ void ModelRoutine::updatePDEBufferGridBetaInPDEBufferRegion( const S32 elemIdx, 
 	return;
 }
 
-void ModelRoutine::updatePDEBufferGridBetaDomainBdry( const S32 elemIdx, const S32 dim, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, REAL& gridBeta ) {
+void ModelRoutine::updatePDEBufferBetaDomainBdry( const S32 elemIdx, const S32 dim, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, REAL& gridBeta ) {
 	/* MODEL START */
 
 	ERROR( "unimplemented." );
@@ -236,7 +236,7 @@ void ModelRoutine::updatePDEBufferGridBetaDomainBdry( const S32 elemIdx, const S
 	return;
 }
 
-void ModelRoutine::updatePDEBufferGridRHSLinear( const S32 elemIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, const REAL gridPhi, REAL& gridRHS/* uptake(-) and secretion (+) */ ) {
+void ModelRoutine::updatePDEBufferRHSLinear( const S32 elemIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, const REAL gridPhi, REAL& gridRHS/* uptake(-) and secretion (+) */ ) {
 	/* MODEL START */
 
 	ERROR( "unimplemented." );
@@ -246,7 +246,7 @@ void ModelRoutine::updatePDEBufferGridRHSLinear( const S32 elemIdx, const VIdx& 
 	return;
 }
 
-void ModelRoutine::adjustPDEBufferGridRHSTimeDependentLinear( const S32 elemIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, const REAL gridPhi, REAL& gridRHS/* INOUT */ ) {
+void ModelRoutine::adjustPDEBufferRHSTimeDependentLinear( const S32 elemIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, const REAL gridPhi, REAL& gridRHS/* INOUT */ ) {
 	/* MODEL START */
 
 	ERROR( "unimplemented." );
@@ -256,7 +256,7 @@ void ModelRoutine::adjustPDEBufferGridRHSTimeDependentLinear( const S32 elemIdx,
 	return;
 }
 
-void ModelRoutine::updatePDEBufferGridRHSTimeDependentSplitting( const S32 pdeIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, const Vector<double>& v_gridPhi/* [idx] */, Vector<double>& v_gridRHS/* [idx], uptake(-) and secretion (+) */ ) {
+void ModelRoutine::updatePDEBufferRHSTimeDependentSplitting( const S32 pdeIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, const Vector<double>& v_gridPhi/* [idx] */, Vector<double>& v_gridRHS/* [idx], uptake(-) and secretion (+) */ ) {
 	/* MODEL START */
 
 	ERROR( "unimplemented." );
@@ -266,7 +266,7 @@ void ModelRoutine::updatePDEBufferGridRHSTimeDependentSplitting( const S32 pdeId
 	return;
 }
 
-void ModelRoutine::updatePDEBufferGridDirichletBCVal( const S32 elemIdx, const VReal& startPos, const VReal& pdeBufferFaceSize, const S32 dim, const BOOL lowSide, REAL& bcVal ) {
+void ModelRoutine::updatePDEBufferDirichletBCVal( const S32 elemIdx, const VReal& startPos, const VReal& pdeBufferFaceSize, const S32 dim, const BOOL lowSide, REAL& bcVal ) {
 	/* MODEL START */
 
 	ERROR( "unimplmented." );
@@ -276,7 +276,7 @@ void ModelRoutine::updatePDEBufferGridDirichletBCVal( const S32 elemIdx, const V
 	return;
 }
 
-void ModelRoutine::updatePDEBufferGridNeumannBCVal( const S32 elemIdx, const VReal& startPos, const VReal& pdeBufferFaceSize, const S32 dim, const BOOL lowSide, REAL& bcVal ) {
+void ModelRoutine::updatePDEBufferNeumannBCVal( const S32 elemIdx, const VReal& startPos, const VReal& pdeBufferFaceSize, const S32 dim, const BOOL lowSide, REAL& bcVal ) {
 	/* MODEL START */
 
 	ERROR( "unimplmented." );

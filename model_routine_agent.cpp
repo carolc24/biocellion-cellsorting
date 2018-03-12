@@ -135,11 +135,11 @@ void ModelRoutine::adjustSpAgent( const VIdx& vIdx, const JunctionData& junction
   }
 
   /* Read chemoattractant values in each of the two neighbor boxes */
-  REAL fwdVal = nbrUBEnv.getValidFlag(fwdOffset) ? nbrUBEnv.getPhi(fwdOffset) : 0.0;
-  REAL bckVal = nbrUBEnv.getValidFlag(bckOffset) ? nbrUBEnv.getPhi(bckOffset) : 0.0;
+  REAL fwdVal = nbrUBEnv.getValidFlag(fwdOffset) ? nbrUBEnv.getPhi(fwdOffset, DIFFUSIBLE_ELEM_CHEMOATTRACTANT) : 0.0;
+  REAL bckVal = nbrUBEnv.getValidFlag(bckOffset) ? nbrUBEnv.getPhi(bckOffset, DIFFUSIBLE_ELEM_CHEMOATTRACTANT) : 0.0;
 
   /* Calculate chemotactic force vector and apply displacement if any */
-  disp = mechIntrctData.force;
+  //disp = mechIntrctData.force;
   REAL chemForce = A_CELL_CHEMOTAXIS_FORCE_STRENGTH[state.getType()] * (fwdVal - bckVal);
   if (chemForce > 0) {
     for (S32 dim = 0; dim < SYSTEM_DIMENSION; dim++) {

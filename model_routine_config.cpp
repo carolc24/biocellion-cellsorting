@@ -178,7 +178,7 @@ void ModelRoutine::updatePhiPDEInfo( Vector<PDEInfo>& v_phiPDEInfo ) {
 
   pdeInfo.v_gridPhiInfo.assign( 1, gridPhiInfo );
 
-  v_pdeInfo[DIFFUSIBLE_ELEM_CHEMOATTRACTANT] = pdeInfo;
+  v_phiPDEInfo[DIFFUSIBLE_ELEM_CHEMOATTRACTANT] = pdeInfo;
 
 	
 	/* MODEL END */
@@ -231,7 +231,7 @@ void ModelRoutine::updateFileOutputInfo( FileOutputInfo& fileOutputInfo ) {
 
 	/* FileOutputInfo class holds the information related to file output of simulation results. */
         fileOutputInfo.particleOutput = true;                          
-        fileOutputInfo.particleNumExtraOutputVars = 0;
+        //fileOutputInfo.particleNumExtraOutputVars = 0;
 
 	fileOutputInfo.v_gridPhiOutput.assign( NUM_DIFFUSIBLE_ELEMS, true );
 	fileOutputInfo.v_gridPhiOutputDivideByKappa.assign( NUM_DIFFUSIBLE_ELEMS, false);
