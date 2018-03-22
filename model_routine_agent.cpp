@@ -36,15 +36,23 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
                                 VReal vOffset;                                          // Poisition offset is the vector distance from the center of the unit box.
                                 SpAgentState state;
 
-                                /* All the cells are placed in the middle of the simulation domain */
-				vIdx[0] = regionSize[0]/2 - 1;
-                                vIdx[1] = regionSize[1]/2 - 1;
-                                vIdx[2] = regionSize[2]/2 - 1;
+				/* Random grid location and offset within grid */
+				for (S32 dim = 0; dim < SYSTEM_DIMENSION; dim++) {
+				  vIdx[dim] = startVIdx[dim] + (idx_t) ( (REAL)regionSize[dim] + Util::getModelRand( MODEL_RNG_UNIFORM ));
+				  if (vIdx[dim] < startVIdx[dim]) {
+				    vIdx[dim] = startVIdx[dim];
+				  } else if (vIdx[dim] >= startVIdx[dim] + regionSize[dim]) {
+				    vIdx[dim] = startVIdx[dim] + regionSize[dim] - 1;
+				  }
 
-                                vOffset[0] = 0.5 * IF_GRID_SPACING;                     // Upper corner the unit box, so the cells are placed "truly" in the middle
-                                vOffset[1] = 0.5 * IF_GRID_SPACING;
-                                vOffset[2] = 0.5 * IF_GRID_SPACING;
-
+				  vOffset[dim] = IF_GRID_SPACING * -0.5 + IF_GRID_SPACING * Util::getModelRand(MODEL_RNG_UNIFORM);
+				  if (vOffset[dim] < IF_GRID_SPACING * -0.5) {
+				    vOffset[dim] = -0.5 * IF_GRID_SPACING;
+				  } else if (vOffset[dim] > IF_GRID_SPACING * 0.5) {
+				    vOffset[dim] = 0.5 * IF_GRID_SPACING;
+				  }
+				}
+				
                                 /* Initialize states of each cell */
                                 state.setType(i);                                                     
                                 state.setRadius(A_CELL_RADIUS[i]);

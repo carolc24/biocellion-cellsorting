@@ -34,7 +34,9 @@ void ModelRoutine::updateIfGridSpacing( REAL& ifGridSpacing ) {
 void ModelRoutine::updateOptModelRoutineCallInfo( OptModelRoutineCallInfo& callInfo ) {
 	/* MODEL START */
 
-	/* nothing to do */
+  callInfo.numComputeMechIntrctIters = 0;
+  callInfo.numUpdateIfGridVarPreStateAndGridStepIters = 1;
+  callInfo.numUpdateIfGridVarPostStateAndGridStepIters = 0;
 
 	/* MODEL END */
 
@@ -142,6 +144,7 @@ void ModelRoutine::updatePhiPDEInfo( Vector<PDEInfo>& v_phiPDEInfo ) {
 
   pdeInfo.pdeType = PDE_TYPE_REACTION_DIFFUSION_TIME_DEPENDENT_LINEAR;
   pdeInfo.numLevels = 3;
+  pdeInfo.v_tagExpansionSize.assign( 3, 0 );
   pdeInfo.numTimeSteps = 1;
   pdeInfo.callAdjustRHSTimeDependentLinear = false;
 
@@ -153,6 +156,9 @@ void ModelRoutine::updatePhiPDEInfo( Vector<PDEInfo>& v_phiPDEInfo ) {
   pdeInfo.mgSolveInfo.epsilon = 1e-8;
   pdeInfo.mgSolveInfo.hang = 1e-8;
   pdeInfo.mgSolveInfo.normThreshold = 1e-18;
+  pdeInfo.pdeIdx = 0;
+
+  pdeInfo.advectionInfo.courantNumber = 0.5;  //dummy
 
   gridPhiInfo.elemIdx = DIFFUSIBLE_ELEM_CHEMOATTRACTANT;
   gridPhiInfo.name = "chemoattractant";

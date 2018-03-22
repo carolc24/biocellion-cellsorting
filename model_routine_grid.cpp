@@ -20,14 +20,14 @@ void ModelRoutine::initIfGridVar( const VIdx& vIdx, const UBAgentData& ubAgentDa
 	/* MODEL START */
 
   CHECK( ubEnv.getPhiArray().size() == NUM_DIFFUSIBLE_ELEMS);
-  CHECK( ubEnv.getModelRealArray().size() == NUM_GRID_SUMMARY_REALS);
-  CHECK( ubEnv.getModelIntArray().size() == 0);
+  //CHECK( ubEnv.getModelRealArray().size() == NUM_GRID_SUMMARY_REALS);
+  //CHECK( ubEnv.getModelIntArray().size() == 0);
 
   ubEnv.setPhi(DIFFUSIBLE_ELEM_CHEMOATTRACTANT, 0.0);
 
-  for( S32 elemIdx = 0 ; elemIdx < NUM_GRID_SUMMARY_REALS ; elemIdx++ ) {
+  /* for( S32 elemIdx = 0 ; elemIdx < NUM_GRID_SUMMARY_REALS ; elemIdx++ ) {
     ubEnv.setModelReal(elemIdx, 0.0);
-  }
+    }*/
 	/* MODEL END */
 
 	return;

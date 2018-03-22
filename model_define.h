@@ -31,13 +31,10 @@ typedef enum _diffusible_elem_e {
 } diffusible_elem_e;
 
 /* Number of cells used in this model */
-const S32 A_INI_N_CELLS[NUM_CELL_TYPES] = { 100 };
+const S32 A_INI_N_CELLS[NUM_CELL_TYPES] = { 100, 100 };
 
 /* Fixed radius of the cells used in the model */
-const REAL A_CELL_RADIUS[NUM_CELL_TYPES] = { 2.0 };
-
-/* Diffussion coenfficient of cells */	
-const REAL A_CELL_DIFFUSION_COEFF[NUM_CELL_TYPES] = { 0.0005 };
+const REAL A_CELL_RADIUS[NUM_CELL_TYPES] = { 2.0, 2.0 };
 
 /* Interface Grid Variables to output in the Summary Ouput
  GRID_SUMMARY_REAL_LIVE_CELLS is the output variable for total number of cells that is available at each time output interval. */
@@ -58,16 +55,16 @@ typedef enum _model_rng_type_e {
 /* IF_GRID_SPACING is the unit length of each voxel in the Simulatoion Domain
  The Simulation Domain size is set in the model XML file
  The Grid spacing can not be less than maximun cell agent diameter */
-const REAL IF_GRID_SPACING = 10.0; // Micrometers
+const REAL IF_GRID_SPACING = 4.0; // Micrometers
 
 /* A baseline time step is the largest time step used in Biocellion
  Users can split a baseline time step into one or more state-and-grid time steps */
-const REAL BASELINE_TIME_STEP_DURATION = 180.0;
+const REAL BASELINE_TIME_STEP_DURATION = 1.0;
 const S32 NUM_STATE_AND_GRID_TIME_STEPS_PER_BASELINE = 1;
 
 /* Required variables for chemotaxis */
-const REAL DIFFUSIBLE_ELEM_DECAY_RATE[NUM_DIFFUSIBLE_ELEMS] = { 0.0001 };
-const REAL DIFFUSIBLE_ELEM_DIFFUSION_COEFFICIENT[NUM_DIFFUSIBLE_ELEMS] = { 0.001 };
+const REAL DIFFUSIBLE_ELEM_DECAY_RATE[NUM_DIFFUSIBLE_ELEMS] = { 0.1 };
+const REAL DIFFUSIBLE_ELEM_DIFFUSION_COEFFICIENT[NUM_DIFFUSIBLE_ELEMS] = { 1.0 };
 const REAL A_CELL_CHEMOATTRACTANT_SECRETION_RATE[NUM_CELL_TYPES] = { 0.1, 0 };
 const REAL A_CELL_CHEMOTAXIS_FORCE_STRENGTH[NUM_CELL_TYPES] = { 0.5, 0 };
 /* MODEL END */

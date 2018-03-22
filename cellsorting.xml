@@ -29,7 +29,7 @@ x(, y, or z): simulation grid size in the x(, y, or z) direction, x(, y, or z) %
         file_type: valid only when src is set to file. input data file type, set to binary if input data files have the Biocellion binary format (currently only this option is supported), required, binary
         path: valid only when src is set to file. path to the directory containing input data files, required, text
 -->
-<init_data partition_size="16" src="code"/>
+<init_data partition_size="64" src="code"/>
 
 <!-- output, parameters related to output data, required
         path: path to the directory to dump output data files, required, text
