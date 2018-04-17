@@ -34,7 +34,7 @@ void ModelRoutine::updateIfGridSpacing( REAL& ifGridSpacing ) {
 void ModelRoutine::updateOptModelRoutineCallInfo( OptModelRoutineCallInfo& callInfo ) {
 	/* MODEL START */
 
-  callInfo.numComputeMechIntrctIters = 0;
+  callInfo.numComputeMechIntrctIters = 1;
   callInfo.numUpdateIfGridVarPreStateAndGridStepIters = 1;
   callInfo.numUpdateIfGridVarPostStateAndGridStepIters = 0;
 
@@ -99,7 +99,11 @@ void ModelRoutine::updateSyncMethod( sync_method_e& mechIntrctSyncMethod, sync_m
 void ModelRoutine::updateSpAgentInfo( Vector<SpAgentInfo>& v_spAgentInfo ) {/* set the mechanical interaction range & the numbers of model specific variables */
 	/* MODEL START */
 
-        /* Provide information about the discrete agent types in the user model */ 
+        /* Provide information about the discrete agent types in the user model */
+        MechModelVarInfo modelVarInfo;
+
+        modelVarInfo.syncMethod = VAR_SYNC_METHOD_DELTA;/* computeMechIntrct */
+  
         v_spAgentInfo.resize( NUM_CELL_TYPES );
 
         for( S32 i = 0 ; i < NUM_CELL_TYPES ; i++ ) {
@@ -108,10 +112,10 @@ void ModelRoutine::updateSpAgentInfo( Vector<SpAgentInfo>& v_spAgentInfo ) {/* s
                 info.dMax = IF_GRID_SPACING;
                 info.numBoolVars = 0;
                 info.numStateModelReals = 0;
-                info.numStateModelInts = 0;
-                info.v_mechIntrctModelRealInfo.clear();
-                info.v_mechIntrctModelIntInfo.clear();
-                info.v_odeNetInfo.clear();
+		info.numStateModelInts = 0;
+		info.v_mechIntrctModelRealInfo.assign( NUM_CELL_MECH_REALS, modelVarInfo );
+		info.v_mechIntrctModelIntInfo.clear();
+		
 
                 v_spAgentInfo[i] = info;
         }
@@ -238,7 +242,10 @@ void ModelRoutine::updateFileOutputInfo( FileOutputInfo& fileOutputInfo ) {
 	/* FileOutputInfo class holds the information related to file output of simulation results. */
         fileOutputInfo.particleOutput = true;                          
         //fileOutputInfo.particleNumExtraOutputVars = 0;
-
+	fileOutputInfo.v_particleExtraOutputVectorVarName.assign( NUM_PARTICLE_EXTRA_OUTPUT_VECTOR_VARS, "");
+	fileOutputInfo.v_particleExtraOutputVectorVarName[PARTICLE_EXTRA_OUTPUT_SCALE] = "scale";
+	fileOutputInfo.v_particleExtraOutputVectorVarName[PARTICLE_EXTRA_OUTPUT_ORIENT] = "orient";
+	
 	fileOutputInfo.v_gridPhiOutput.assign( NUM_DIFFUSIBLE_ELEMS, true );
 	fileOutputInfo.v_gridPhiOutputDivideByKappa.assign( NUM_DIFFUSIBLE_ELEMS, false);
 

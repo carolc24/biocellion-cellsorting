@@ -33,14 +33,31 @@ void ModelRoutine::initJunctionSpAgent( const VIdx& vIdx0, const SpAgent& spAgen
 }
 
 void ModelRoutine::computeMechIntrctSpAgent( const S32 iter, const VIdx& vIdx0, const SpAgent& spAgent0, const UBEnv& ubEnv0, const VIdx& vIdx1, const SpAgent& spAgent1, const UBEnv& ubEnv1, const VReal& dir/* unit direction vector from spAgent1 to spAgent0 */, const REAL& dist, MechIntrctData& mechIntrctData0, MechIntrctData& mechIntrctData1, BOOL& link, JunctionEnd& end0/* dummy if link == false */, JunctionEnd& end1/* dummy if link == false */, BOOL& unlink ) {
-	/* MODEL START */
+  /* MODEL START */
 
-	link = false;
-	unlink = false;	
+  /* Cell Shoving and Adhesion */
+  REAL R = spAgent0.state.getRadius() + spAgent1.state.getRadius();
+  REAL mag = 0.0;/* + for repulsive force, - for adhesive force */
 
-	/* MODEL END */
+  if( dist <= R ) {
+    mag = A_CELL_SPRING_CONSTANT * ( R - dist );
+  }
 
-	return;
+  mechIntrctData0.setModelReal( CELL_MECH_REAL_FORCE_X, dir[0] * mag );
+  mechIntrctData0.setModelReal( CELL_MECH_REAL_FORCE_Y, dir[1] * mag );
+  mechIntrctData0.setModelReal( CELL_MECH_REAL_FORCE_Z, dir[2] * mag );
+
+  mechIntrctData1.setModelReal( CELL_MECH_REAL_FORCE_X, -dir[0] * mag );
+  mechIntrctData1.setModelReal( CELL_MECH_REAL_FORCE_Y, -dir[1] * mag );
+  mechIntrctData1.setModelReal( CELL_MECH_REAL_FORCE_Z, -dir[2] * mag );
+
+  link = false;
+  unlink = false;
+
+  /* MODEL END */
+
+  return;
+  
 }
 #endif
 

@@ -31,10 +31,10 @@ typedef enum _diffusible_elem_e {
 } diffusible_elem_e;
 
 /* Number of cells used in this model */
-const S32 A_INI_N_CELLS[NUM_CELL_TYPES] = { 100, 100 };
+const S32 A_INI_N_CELLS[NUM_CELL_TYPES] = { 300, 0 };
 
 /* Fixed radius of the cells used in the model */
-const REAL A_CELL_RADIUS[NUM_CELL_TYPES] = { 2.0, 2.0 };
+const REAL A_CELL_RADIUS[NUM_CELL_TYPES] = { 1.0, 1.0 };
 
 /* Interface Grid Variables to output in the Summary Ouput
  GRID_SUMMARY_REAL_LIVE_CELLS is the output variable for total number of cells that is available at each time output interval. */
@@ -52,6 +52,13 @@ typedef enum _model_rng_type_e {
         NUM_MODEL_RNGS
 } model_rng_type_e;
 
+/* Infomation needed to render spheres as ellipsoids  */
+typedef enum _extra_vector_e {
+  PARTICLE_EXTRA_OUTPUT_SCALE,
+  PARTICLE_EXTRA_OUTPUT_ORIENT,
+  NUM_PARTICLE_EXTRA_OUTPUT_VECTOR_VARS
+} extra_vector_e;
+
 /* IF_GRID_SPACING is the unit length of each voxel in the Simulatoion Domain
  The Simulation Domain size is set in the model XML file
  The Grid spacing can not be less than maximun cell agent diameter */
@@ -65,8 +72,26 @@ const S32 NUM_STATE_AND_GRID_TIME_STEPS_PER_BASELINE = 1;
 /* Required variables for chemotaxis */
 const REAL DIFFUSIBLE_ELEM_DECAY_RATE[NUM_DIFFUSIBLE_ELEMS] = { 0.1 };
 const REAL DIFFUSIBLE_ELEM_DIFFUSION_COEFFICIENT[NUM_DIFFUSIBLE_ELEMS] = { 1.0 };
-const REAL A_CELL_CHEMOATTRACTANT_SECRETION_RATE[NUM_CELL_TYPES] = { 0.1, 0 };
-const REAL A_CELL_CHEMOTAXIS_FORCE_STRENGTH[NUM_CELL_TYPES] = { 0.5, 0 };
+const REAL A_CELL_CHEMOATTRACTANT_SECRETION_RATE[NUM_CELL_TYPES] = { 0.2, 0 };
+const REAL A_CELL_CHEMOTAXIS_FORCE_STRENGTH[NUM_CELL_TYPES] = { 1.0, 0 };
+
+/* Mechanical Interaction Force Constant */
+typedef enum _cell_mech_real_e {
+  CELL_MECH_REAL_FORCE_X,/* shoving & adhesion */
+  CELL_MECH_REAL_FORCE_Y,/* shoving & adhesion */
+  CELL_MECH_REAL_FORCE_Z,/* shoving & adhesion */
+          NUM_CELL_MECH_REALS
+} cell_mech_real_e;
+
+/* Cell Adhesion Constant */
+const REAL A_CELL_ADHESION = 0.5;
+
+/* Cell Shoving Constant */
+const REAL A_CELL_SPRING_CONSTANT = 0.05;
+
+/* Cell diffusion coefficient */
+const REAL A_CELL_DIFFUSION_COEFF[NUM_CELL_TYPES] = { 0.005, 0.005 };
+
 /* MODEL END */
 
 #endif/* #ifndef __MY_DEFINE_H__ */

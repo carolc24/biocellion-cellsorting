@@ -38,7 +38,7 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 
 				/* Random grid location and offset within grid */
 				for (S32 dim = 0; dim < SYSTEM_DIMENSION; dim++) {
-				  vIdx[dim] = startVIdx[dim] + (idx_t) ( (REAL)regionSize[dim] + Util::getModelRand( MODEL_RNG_UNIFORM ));
+				  vIdx[dim] = startVIdx[dim] + (idx_t) ( (REAL)regionSize[dim] * Util::getModelRand( MODEL_RNG_UNIFORM ) * 0.25);
 				  if (vIdx[dim] < startVIdx[dim]) {
 				    vIdx[dim] = startVIdx[dim];
 				  } else if (vIdx[dim] >= startVIdx[dim] + regionSize[dim]) {
@@ -147,13 +147,20 @@ void ModelRoutine::adjustSpAgent( const VIdx& vIdx, const JunctionData& junction
   REAL bckVal = nbrUBEnv.getValidFlag(bckOffset) ? nbrUBEnv.getPhi(bckOffset, DIFFUSIBLE_ELEM_CHEMOATTRACTANT) : 0.0;
 
   /* Calculate chemotactic force vector and apply displacement if any */
-  //disp = mechIntrctData.force;
   REAL chemForce = A_CELL_CHEMOTAXIS_FORCE_STRENGTH[state.getType()] * (fwdVal - bckVal);
-  if (chemForce > 0) {
+  if (chemForce != 0) {
     for (S32 dim = 0; dim < SYSTEM_DIMENSION; dim++) {
-      disp[dim] += fwdDir[dim] * chemForce;
+      disp[dim] = fwdDir[dim] * chemForce;
     }
   }
+
+
+  for( S32 dim = 0 ; dim < SYSTEM_DIMENSION ; dim++ ){
+    REAL F_prw = SQRT( 2 * A_CELL_DIFFUSION_COEFF[ state.getType() ] * BASELINE_TIME_STEP_DURATION );
+    /* Add random vibration after cell shoving & adhesion */
+    //    disp[dim] += F_prw*Util::getModelRand( MODEL_RNG_GAUSSIAN );
+  }
+  
 
         /* Limiting the displacement to within a single voxel */
         for( S32 dim = 0 ; dim < SYSTEM_DIMENSION; dim++ ) {

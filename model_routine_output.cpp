@@ -25,8 +25,12 @@ void ModelRoutine::updateSpAgentOutput( const VIdx& vIdx, const SpAgent& spAgent
 	/* MODEL START */
 
         color = spAgent.state.getType();
-        CHECK( v_extraScalar.size() == 0 );
-      	CHECK( v_extraVector.size() == 0 );
+	v_extraVector[PARTICLE_EXTRA_OUTPUT_SCALE][0] = spAgent.state.getRadius();
+	v_extraVector[PARTICLE_EXTRA_OUTPUT_SCALE][1] = spAgent.state.getRadius();
+	v_extraVector[PARTICLE_EXTRA_OUTPUT_SCALE][2] = spAgent.state.getRadius();
+	v_extraVector[PARTICLE_EXTRA_OUTPUT_ORIENT][0] = 0.0;
+	v_extraVector[PARTICLE_EXTRA_OUTPUT_ORIENT][1] = 0.0;
+	v_extraVector[PARTICLE_EXTRA_OUTPUT_ORIENT][2] = 0.0;
 
 	/* MODEL END */
 
