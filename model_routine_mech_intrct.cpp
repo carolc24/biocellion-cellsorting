@@ -21,7 +21,12 @@ NOTICE:  These data were produced by Battelle Memorial Institute (BATTELLE) unde
 using namespace std;
 
 #if HAS_SPAGENT
-void ModelRoutine::initJunctionSpAgent( const VIdx& vIdx0, const SpAgent& spAgent0, const VIdx& vIdx1, const SpAgent& spAgent1, const VReal& dir/* unit direction vector from spAgent1 to spAgent0 */, const REAL& dist, BOOL& link, JunctionEnd& end0/* dummy if link == false */, JunctionEnd& end1/* dummy if link == false */
+
+VReal computeOvlpForce( const SpAgentState& state0, const SpAgentState& state1, const Ellipsoid& e0, const Ellipsoid& e1, VReal& minPotentialVPointOnE0, VReal& minPotentialVPointOnE0FromE1, VReal& minPotentialVPointOnE1, VReal& minPotentialVPointOnE1FromE0);
+
+void computeMinPotentialPoints( const Ellipsoid& e0, const Ellipsoid& e1, const VReal& vDir, const REAL& dist, VReal& minPotentialVPointOnE0, VReal& minPotentialVPointOnE1);
+
+void ModelRoutine::initJunctionSpAgent( const VIdx& vIdx0, const SpAgent& spAgent0, const UBEnv& ubEnv0, const VIdx& vIdx1, const SpAgent& spAgent1, const UBEnv& ubEnv1, const VReal& vDir/* unit direction vector from spAgent1 to spAgent0 */, const REAL dist, BOOL& link, JunctionEnd& end0/* dummy if link == false */, JunctionEnd& end1/* dummy if link == false */
 ) {
 	/* MODEL START */
 
@@ -32,32 +37,174 @@ void ModelRoutine::initJunctionSpAgent( const VIdx& vIdx0, const SpAgent& spAgen
 	return;
 }
 
-void ModelRoutine::computeMechIntrctSpAgent( const S32 iter, const VIdx& vIdx0, const SpAgent& spAgent0, const UBEnv& ubEnv0, const VIdx& vIdx1, const SpAgent& spAgent1, const UBEnv& ubEnv1, const VReal& dir/* unit direction vector from spAgent1 to spAgent0 */, const REAL& dist, MechIntrctData& mechIntrctData0, MechIntrctData& mechIntrctData1, BOOL& link, JunctionEnd& end0/* dummy if link == false */, JunctionEnd& end1/* dummy if link == false */, BOOL& unlink ) {
+void ModelRoutine::computeMechIntrctSpAgent( const S32 iter, const VIdx& vIdx0, const SpAgent& spAgent0, const UBEnv& ubEnv0, const VIdx& vIdx1, const SpAgent& spAgent1, const UBEnv& ubEnv1, const VReal& vDir/* unit direction vector from spAgent1 to spAgent0 */, const REAL dist, MechIntrctData& mechIntrctData0, MechIntrctData& mechIntrctData1, BOOL& link, JunctionEnd& end0/* dummy if link == false */, JunctionEnd& end1/* dummy if link == false */, BOOL& unlink ) {
   /* MODEL START */
 
-  /* Cell Shoving and Adhesion */
-  REAL R = spAgent0.state.getRadius() + spAgent1.state.getRadius();
-  REAL mag = 0.0;/* + for repulsive force, - for adhesive force */
-
-  if( dist <= R ) {
-    mag = A_CELL_SPRING_CONSTANT * ( R - dist );
-  }
-
-  mechIntrctData0.setModelReal( CELL_MECH_REAL_FORCE_X, dir[0] * mag );
-  mechIntrctData0.setModelReal( CELL_MECH_REAL_FORCE_Y, dir[1] * mag );
-  mechIntrctData0.setModelReal( CELL_MECH_REAL_FORCE_Z, dir[2] * mag );
-
-  mechIntrctData1.setModelReal( CELL_MECH_REAL_FORCE_X, -dir[0] * mag );
-  mechIntrctData1.setModelReal( CELL_MECH_REAL_FORCE_Y, -dir[1] * mag );
-  mechIntrctData1.setModelReal( CELL_MECH_REAL_FORCE_Z, -dir[2] * mag );
-
+  agentType_t type0 = spAgent0.state.getType();
+  agentType_t type1 = spAgent1.state.getType();
+  
   link = false;
   unlink = false;
 
+  VReal vScale0;
+  VReal vScale1;
+  Ellipsoid e0;
+  Ellipsoid e1;
+
+  VReal vForce;
+  VReal vMoment0;
+  VReal vMoment1;
+
+  VReal equivMinPotentialVPointOnE0;
+  VReal equivMinPotentialVPointOnE0FromE1;
+  VReal equivMinPotentialVPointOnE1;
+  VReal equivMinPotentialVPointOnE1FromE0;
+  S32 idx0;
+  S32 idx1;
+
+  BOOL closerThanEquilibriumDist;
+
+  vScale0[0] = spAgent0.state.getModelReal( AGENT_STATE_REAL_ELLIPSOID_A );
+  vScale0[1] = spAgent0.state.getModelReal( AGENT_STATE_REAL_ELLIPSOID_B );
+  vScale0[2] = spAgent0.state.getModelReal( AGENT_STATE_REAL_ELLIPSOID_C );
+  e0.qRot.set( spAgent0.state.getModelReal( AGENT_STATE_REAL_ROTATIONAL_QUATERNION_A ), spAgent0.state.getModelReal( AGENT_STATE_REAL_ROTATIONAL_QUATERNION_B ), spAgent0.state.getModelReal( AGENT_STATE_REAL_ROTATIONAL_QUATERNION_C ), spAgent0.state.getModelReal( AGENT_STATE_REAL_ROTATIONAL_QUATERNION_D ));
+
+  vScale1[0] = spAgent1.state.getModelReal( AGENT_STATE_REAL_ELLIPSOID_A );
+  vScale1[1] = spAgent1.state.getModelReal( AGENT_STATE_REAL_ELLIPSOID_B );
+  vScale1[2] = spAgent1.state.getModelReal( AGENT_STATE_REAL_ELLIPSOID_C );
+  e1.qRot.set( spAgent1.state.getModelReal( AGENT_STATE_REAL_ROTATIONAL_QUATERNION_A ), spAgent1.state.getModelReal( AGENT_STATE_REAL_ROTATIONAL_QUATERNION_B ), spAgent1.state.getModelReal( AGENT_STATE_REAL_ROTATIONAL_QUATERNION_C ), spAgent1.state.getModelReal( AGENT_STATE_REAL_ROTATIONAL_QUATERNION_D ));
+
+  vForce = VReal::ZERO;
+  vMoment0 = VReal::ZERO;
+  vMoment1 = VReal::ZERO;
+
+  e0.vScale = vScale0;
+  e1.vScale = vScale1;
+
+  computeMinPotentialPoints( e0, e1, vDir, dist, equivMinPotentialVPointOnE0, equivMinPotentialVPointOnE1);
+  equivMinPotentialVPointOnE0FromE1 = equivMinPotentialVPointOnE0 + vDir * dist;
+  equivMinPotentialVPointOnE1FromE0 = equivMinPotentialVPointOnE1 - vDir * dist;
+
+  if (e0.overlaps( e1, vDir * -1.0, dist) == true) {
+    //printf("Overlap detected\n");
+    VReal vPos;
+
+    vForce = computeOvlpForce( spAgent0.state, spAgent1.state, e0, e1, equivMinPotentialVPointOnE0, equivMinPotentialVPointOnE0FromE1, equivMinPotentialVPointOnE1, equivMinPotentialVPointOnE1FromE0);
+
+     vPos = ( equivMinPotentialVPointOnE0 + equivMinPotentialVPointOnE1FromE0) * 0.5;
+     vMoment0 = VReal::crossProduct( vPos, vForce);
+
+     vPos = ( equivMinPotentialVPointOnE1 + equivMinPotentialVPointOnE0FromE1) * 0.5;
+     vMoment1 = VReal::crossProduct( vPos, vForce*-1.0);
+
+     closerThanEquilibriumDist = true;
+  } else {
+    closerThanEquilibriumDist = false;
+  }
+
+  mechIntrctData0.setModelReal( AGENT_MECH_REAL_FORCE_X, vForce[0] );
+  mechIntrctData0.setModelReal( AGENT_MECH_REAL_FORCE_Y, vForce[1] );
+  mechIntrctData0.setModelReal( AGENT_MECH_REAL_FORCE_Z, vForce[2] );
+  mechIntrctData0.setModelReal( AGENT_MECH_REAL_MOMENT_X, vMoment0[0] );
+  mechIntrctData0.setModelReal( AGENT_MECH_REAL_MOMENT_Y, vMoment0[1] );
+  mechIntrctData0.setModelReal( AGENT_MECH_REAL_MOMENT_Z, vMoment0[2] );
+
+  mechIntrctData1.setModelReal( AGENT_MECH_REAL_FORCE_X, vForce[0]*-1.0 );
+  mechIntrctData1.setModelReal( AGENT_MECH_REAL_FORCE_Y, vForce[1]*-1.0 );
+  mechIntrctData1.setModelReal( AGENT_MECH_REAL_FORCE_Z, vForce[2]*-1.0 );
+  mechIntrctData1.setModelReal( AGENT_MECH_REAL_MOMENT_X, vMoment1[0] );
+  mechIntrctData1.setModelReal( AGENT_MECH_REAL_MOMENT_Y, vMoment1[1] );
+  mechIntrctData1.setModelReal( AGENT_MECH_REAL_MOMENT_Z, vMoment1[2] );
   /* MODEL END */
 
   return;
   
+}
+
+void computeMinPotentialPoints( const Ellipsoid& e0, const Ellipsoid& e1, const VReal& vDir, const REAL& dist, VReal& minPotentialVPointOnE0, VReal& minPotentialVPointOnE1) {
+  minPotentialVPointOnE0 = e0.getMinPotentialPointOn( e1, vDir * -dist );
+  minPotentialVPointOnE1 = e1.getMinPotentialPointOn( e0, vDir * dist );
+
+  return;
+}
+
+VReal computeOvlpForce( const SpAgentState& state0, const SpAgentState& state1, const Ellipsoid& e0, const Ellipsoid& e1, VReal& minPotentialVPointOnE0, VReal& minPotentialVPointOnE0FromE1, VReal& minPotentialVPointOnE1, VReal& minPotentialVPointOnE1FromE0) {
+  VReal a_principalAxisVDir0[2];
+  REAL a_principalCurvature0[2];
+
+  VReal a_principalAxisVDir1[2];
+  REAL a_principalCurvature1[2];
+
+  REAL oneOverR0Prime;
+  REAL oneOverR0DoublePrime;
+  REAL oneOverR1Prime;
+  REAL oneOverR1DoublePrime;
+  VReal principalVDir0;
+  VReal principalVDir1;
+  REAL cosAlpha;
+  REAL cos2Alpha;
+  REAL APlusB;
+  REAL BMinusA;
+  REAL A;
+  REAL B;
+  REAL Re;
+
+  REAL E0;
+  REAL E1;
+  REAL nu0;
+  REAL nu1;
+  REAL EStar;
+
+  VReal vN;
+  REAL sigmaN;
+  REAL correction;
+  REAL f;
+
+  e0.computePrincipalCurvatures( minPotentialVPointOnE0, a_principalAxisVDir0, a_principalCurvature0 );
+  e1.computePrincipalCurvatures( minPotentialVPointOnE1, a_principalAxisVDir1, a_principalCurvature1 );
+
+  oneOverR0Prime = FABS( a_principalCurvature0[0] );
+  oneOverR0DoublePrime = FABS( a_principalCurvature0[1] );
+  oneOverR1Prime = FABS( a_principalCurvature1[0] );
+  oneOverR1DoublePrime = FABS( a_principalCurvature1[1] );
+
+  principalVDir0 = a_principalAxisVDir0[0] + a_principalAxisVDir0[1];
+  principalVDir1 = a_principalAxisVDir1[0] + a_principalAxisVDir1[1];
+  principalVDir0 = VReal::normalize(principalVDir0);
+  principalVDir1 = VReal::normalize(principalVDir1);
+
+  APlusB = (oneOverR0Prime + oneOverR0DoublePrime + oneOverR1Prime + oneOverR1DoublePrime) * 0.5;
+  cosAlpha = principalVDir0.dotProduct(principalVDir1);
+  cos2Alpha = 2.0 * cosAlpha * cosAlpha - 1.0;
+  if (cos2Alpha > 1.0 - REAL_EPSILON * 1e1) {
+    BMinusA = FABS((oneOverR0Prime - oneOverR0DoublePrime) + (oneOverR1Prime - oneOverR1DoublePrime))*0.5;
+  } else if (cos2Alpha > (1.0 - REAL_EPSILON * 1e1) * -1.0 ) {
+    BMinusA = FABS((oneOverR0Prime - oneOverR0DoublePrime) - (oneOverR1Prime - oneOverR1DoublePrime))*0.5;
+  } else {
+    BMinusA = SQRT((oneOverR0Prime - oneOverR0DoublePrime) * (oneOverR0Prime - oneOverR0DoublePrime) + (oneOverR1Prime - oneOverR1DoublePrime) * (oneOverR1Prime - oneOverR1DoublePrime) + 2.0 * (oneOverR0Prime - oneOverR0DoublePrime) * (oneOverR1Prime - oneOverR1DoublePrime) * cos2Alpha) * 0.5;
+  }
+
+  CHECK(APlusB >= BMinusA);
+  B = (APlusB + BMinusA) * 0.5;
+  A = APlusB - B;
+  CHECK(A*B > 0.0);
+  Re = (1.0 / SQRT(A*B)) * 0.5;
+
+  E0 = state0.getModelReal(AGENT_STATE_REAL_YOUNGS_MODULUS);
+  E1 = state1.getModelReal(AGENT_STATE_REAL_YOUNGS_MODULUS);
+  nu0 = state0.getModelReal(AGENT_STATE_REAL_POISSONS_RATIO);
+  nu1 = state1.getModelReal(AGENT_STATE_REAL_POISSONS_RATIO);
+
+  EStar = 1.0 / (( 1.0 - nu0 * nu0) / E0 + (1.0 - nu1 * nu1) / E1);
+
+  vN = (((minPotentialVPointOnE1FromE0 - minPotentialVPointOnE0) +( minPotentialVPointOnE1 - minPotentialVPointOnE0FromE1))*0.5);
+  sigmaN=vN.length();
+  vN = VReal::normalize(vN);
+  correction = POW(1.0 - POW(POW(B/A, 0.0684) - 1.0, 1.531), -3.0/2.0);
+
+  f = (4.0/3.0) * EStar * SQRT(Re) * POW(sigmaN, 3.0/2.0) * correction;
+
+  return vN * f;
 }
 #endif
 

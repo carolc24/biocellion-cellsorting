@@ -48,9 +48,9 @@ void ModelRoutine::updateDomainBdryType( domain_bdry_type_e a_domainBdryType[DIM
 
         /* We set the Boundary Types of the Simulation Domain 
          There are only two Boundary Types: DOMAIN_BDRY_TYPE_PERIODIC, DOMAIN_BDRY_TYPE_NONPERIODIC_HARD_WALL */
-        a_domainBdryType[0] = DOMAIN_BDRY_TYPE_NONPERIODIC_HARD_WALL; //+-x direction walls
-        a_domainBdryType[1] = DOMAIN_BDRY_TYPE_NONPERIODIC_HARD_WALL; //+-y direction walls
-        a_domainBdryType[2] = DOMAIN_BDRY_TYPE_NONPERIODIC_HARD_WALL; //+-z direction walls
+        a_domainBdryType[0] = DOMAIN_BDRY_TYPE_PERIODIC; //+-x direction walls
+        a_domainBdryType[1] = DOMAIN_BDRY_TYPE_PERIODIC; //+-y direction walls
+        a_domainBdryType[2] = DOMAIN_BDRY_TYPE_PERIODIC; //+-z direction walls
 
 	/* MODEL END */
 
@@ -109,11 +109,13 @@ void ModelRoutine::updateSpAgentInfo( Vector<SpAgentInfo>& v_spAgentInfo ) {/* s
         for( S32 i = 0 ; i < NUM_CELL_TYPES ; i++ ) {
                 SpAgentInfo info;
 
-                info.dMax = IF_GRID_SPACING;
-                info.numBoolVars = 0;
-                info.numStateModelReals = 0;
+                //info.dMax = IF_GRID_SPACING;
+                //info.numBoolVars = 0;
+		info.mechIntrctBdryType = MECH_INTRCT_BDRY_TYPE_ELLIPSOID;
+                info.numStateModelReals = 13;
+		info.numStateInternalModelReals = 9;
 		info.numStateModelInts = 0;
-		info.v_mechIntrctModelRealInfo.assign( NUM_CELL_MECH_REALS, modelVarInfo );
+		info.v_mechIntrctModelRealInfo.assign( NUM_AGENT_MECH_REALS, modelVarInfo );
 		info.v_mechIntrctModelIntInfo.clear();
 		
 
@@ -137,6 +139,14 @@ void ModelRoutine::updateJunctionEndInfo( Vector<JunctionEndInfo>& v_junctionEnd
 	return;
 }
 
+void ModelRoutine::updateEllipsoidInfo( EllipsoidInfo& ellipsoidInfo ) {
+
+  ellipsoidInfo.maxIters = MECH_INTRCT_ELLIPSOID_MAX_ITERS;
+  ellipsoidInfo.epsilon = MECH_INTRCT_ELLIPSOID_EPSILON;
+
+  return;
+}
+
 void ModelRoutine::updatePhiPDEInfo( Vector<PDEInfo>& v_phiPDEInfo ) {
 	/* MODEL START */
 
@@ -144,7 +154,7 @@ void ModelRoutine::updatePhiPDEInfo( Vector<PDEInfo>& v_phiPDEInfo ) {
   v_phiPDEInfo.resize( NUM_DIFFUSIBLE_ELEMS );
 
   PDEInfo pdeInfo;
-  GridPhiInfo gridPhiInfo;
+  PhiInfo phiInfo;
 
   pdeInfo.pdeType = PDE_TYPE_REACTION_DIFFUSION_TIME_DEPENDENT_LINEAR;
   pdeInfo.numLevels = 3;
@@ -160,43 +170,44 @@ void ModelRoutine::updatePhiPDEInfo( Vector<PDEInfo>& v_phiPDEInfo ) {
   pdeInfo.mgSolveInfo.epsilon = 1e-8;
   pdeInfo.mgSolveInfo.hang = 1e-8;
   pdeInfo.mgSolveInfo.normThreshold = 1e-18;
-  pdeInfo.pdeIdx = 0;
+  pdeInfo.pdeIdx = DIFFUSIBLE_ELEM_CHEMOATTRACTANT;
 
-  pdeInfo.advectionInfo.courantNumber = 0.5;  //dummy
+  pdeInfo.advectionInfo.courantNumber = 0.0;  //dummy
 
-  gridPhiInfo.elemIdx = DIFFUSIBLE_ELEM_CHEMOATTRACTANT;
-  gridPhiInfo.name = "chemoattractant";
+  phiInfo.elemIdx = DIFFUSIBLE_ELEM_CHEMOATTRACTANT;
+  phiInfo.name = "chemoattractant";
 
+  phiInfo.syncMethod = VAR_SYNC_METHOD_DELTA;
+  
   /* PDE Boundary conditions */
-  gridPhiInfo.aa_bcType[0][0] = BC_TYPE_NEUMANN_CONST;
-  gridPhiInfo.aa_bcType[0][1] = BC_TYPE_NEUMANN_CONST;
-  gridPhiInfo.aa_bcType[1][0] = BC_TYPE_NEUMANN_CONST;
-  gridPhiInfo.aa_bcType[1][1] = BC_TYPE_NEUMANN_CONST;
-  gridPhiInfo.aa_bcType[2][0] = BC_TYPE_NEUMANN_CONST;
-  gridPhiInfo.aa_bcType[2][1] = BC_TYPE_NEUMANN_CONST;
-  gridPhiInfo.aa_bcVal[0][0] = 0.0;
-  gridPhiInfo.aa_bcVal[0][1] = 0.0;
-  gridPhiInfo.aa_bcVal[1][0] = 0.0;
-  gridPhiInfo.aa_bcVal[1][1] = 0.0;
-  gridPhiInfo.aa_bcVal[2][0] = 0.0;
-  gridPhiInfo.aa_bcVal[2][1] = 0.0;
+  phiInfo.aa_bcType[0][0] = PHI_BC_TYPE_NEUMANN;
+  phiInfo.aa_bcType[0][1] = PHI_BC_TYPE_NEUMANN;
+  phiInfo.aa_bcType[1][0] = PHI_BC_TYPE_NEUMANN;
+  phiInfo.aa_bcType[1][1] = PHI_BC_TYPE_NEUMANN;
+  phiInfo.aa_bcType[2][0] = PHI_BC_TYPE_NEUMANN;
+  phiInfo.aa_bcType[2][1] = PHI_BC_TYPE_NEUMANN;
+  //phiInfo.aa_bcVal[0][0] = 0.0;
+  //phiInfo.aa_bcVal[0][1] = 0.0;
+  //phiInfo.aa_bcVal[1][0] = 0.0;
+  //phiInfo.aa_bcVal[1][1] = 0.0;
+  //phiInfo.aa_bcVal[2][0] = 0.0;
+  //phiInfo.aa_bcVal[2][1] = 0.0;
 
   /* PDE error/warning and corrections */
-  gridPhiInfo.errorThresholdVal = -1.0e-15;
-  gridPhiInfo.warningThresholdVal = -1.0e-18;
-  gridPhiInfo.setNegToZero = true;
+  phiInfo.errorThresholdVal = -1.0e-15;
+  phiInfo.warningThresholdVal = -1.0e-18;
+  phiInfo.setNegToZero = true;
 
-  pdeInfo.v_gridPhiInfo.assign( 1, gridPhiInfo );
+  pdeInfo.v_phiInfo.assign( 1, phiInfo );
 
   v_phiPDEInfo[DIFFUSIBLE_ELEM_CHEMOATTRACTANT] = pdeInfo;
-
 	
 	/* MODEL END */
 
 	return;
 }
 
-void ModelRoutine::updateIfGridModelVarInfo( Vector<IfGridModelVarInfo>& v_ifGridModelRealInfo, Vector<IfGridModelVarInfo>& v_ifGridModelIntInfo ) {
+void ModelRoutine::updateIfGridModelVarInfo( Vector<IfGridModelVarInfo>& v_ifGridModelRealInfo, Vector<IfGridModelVarInfo>& v_ifGridModelIntInfo, Vector<IfGridModelVarInfo>& v_ifGridInternalModelRealInfo, Vector<IfGridModelVarInfo>& v_ifGridInternalModelIntInfo ) {
 	/* MODEL START */
 
 	/* No model_routine_grid.cpp in this model */
@@ -240,14 +251,16 @@ void ModelRoutine::updateFileOutputInfo( FileOutputInfo& fileOutputInfo ) {
 	/* MODEL START */
 
 	/* FileOutputInfo class holds the information related to file output of simulation results. */
-        fileOutputInfo.particleOutput = true;                          
+        fileOutputInfo.v_spAgentParticleOutput.assign(NUM_CELL_TYPES, true);                          
         //fileOutputInfo.particleNumExtraOutputVars = 0;
-	fileOutputInfo.v_particleExtraOutputVectorVarName.assign( NUM_PARTICLE_EXTRA_OUTPUT_VECTOR_VARS, "");
-	fileOutputInfo.v_particleExtraOutputVectorVarName[PARTICLE_EXTRA_OUTPUT_SCALE] = "scale";
-	fileOutputInfo.v_particleExtraOutputVectorVarName[PARTICLE_EXTRA_OUTPUT_ORIENT] = "orient";
+	fileOutputInfo.v_particleExtraOutputRealName.assign( NUM_PARTICLE_EXTRA_OUTPUT_SCALAR_VARS, "");
+	fileOutputInfo.v_particleExtraOutputVRealName.assign( NUM_PARTICLE_EXTRA_OUTPUT_VECTOR_VARS, "");
+	fileOutputInfo.v_particleExtraOutputRealName[PARTICLE_EXTRA_OUTPUT_RADIUS] = "radius";
+	fileOutputInfo.v_particleExtraOutputVRealName[PARTICLE_EXTRA_OUTPUT_SCALE] = "scale";
+	fileOutputInfo.v_particleExtraOutputVRealName[PARTICLE_EXTRA_OUTPUT_ORIENT] = "orient";
 	
-	fileOutputInfo.v_gridPhiOutput.assign( NUM_DIFFUSIBLE_ELEMS, true );
-	fileOutputInfo.v_gridPhiOutputDivideByKappa.assign( NUM_DIFFUSIBLE_ELEMS, false);
+	fileOutputInfo.v_phiOutput.assign( NUM_DIFFUSIBLE_ELEMS, true );
+	fileOutputInfo.v_phiOutputDivideByKappa.assign( NUM_DIFFUSIBLE_ELEMS, false);
 
 	/* MODEL END */
 

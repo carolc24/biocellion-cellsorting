@@ -25,12 +25,38 @@ void ModelRoutine::updateSpAgentOutput( const VIdx& vIdx, const SpAgent& spAgent
 	/* MODEL START */
 
         color = spAgent.state.getType();
-	v_extraVector[PARTICLE_EXTRA_OUTPUT_SCALE][0] = spAgent.state.getRadius();
-	v_extraVector[PARTICLE_EXTRA_OUTPUT_SCALE][1] = spAgent.state.getRadius();
-	v_extraVector[PARTICLE_EXTRA_OUTPUT_SCALE][2] = spAgent.state.getRadius();
+	v_extraScalar[PARTICLE_EXTRA_OUTPUT_RADIUS] = 1.0;
+	v_extraVector[PARTICLE_EXTRA_OUTPUT_SCALE][0] = spAgent.state.getModelReal(AGENT_STATE_REAL_ELLIPSOID_A);
+	v_extraVector[PARTICLE_EXTRA_OUTPUT_SCALE][1] = spAgent.state.getModelReal(AGENT_STATE_REAL_ELLIPSOID_B);
+	v_extraVector[PARTICLE_EXTRA_OUTPUT_SCALE][2] = spAgent.state.getModelReal(AGENT_STATE_REAL_ELLIPSOID_C);
 	v_extraVector[PARTICLE_EXTRA_OUTPUT_ORIENT][0] = 0.0;
 	v_extraVector[PARTICLE_EXTRA_OUTPUT_ORIENT][1] = 0.0;
 	v_extraVector[PARTICLE_EXTRA_OUTPUT_ORIENT][2] = 0.0;
+
+	REAL real;
+	VReal vImg;
+	Quaternion q;
+	REAL thetaX, thetaY, thetaZ;
+	
+	real = spAgent.state.getModelReal( AGENT_STATE_REAL_ROTATIONAL_QUATERNION_A );
+        vImg[0] = spAgent.state.getModelReal( AGENT_STATE_REAL_ROTATIONAL_QUATERNION_B );
+        vImg[1] = spAgent.state.getModelReal( AGENT_STATE_REAL_ROTATIONAL_QUATERNION_C );
+        vImg[2] = spAgent.state.getModelReal( AGENT_STATE_REAL_ROTATIONAL_QUATERNION_D );
+        q.set( real, vImg );
+        Quaternion::toTaitBryanIntrinsicZ1stX2ndY3rd( q, thetaZ, thetaX, thetaY );
+
+        v_extraVector[PARTICLE_EXTRA_OUTPUT_ORIENT][0] = thetaX * ( 180.0 / MY_PI );/* paraview rotation: 1) rotateZ( orient[2] ), 2) rotateX( orient[0] ), 3) rotateY( orient[1] ) */
+        v_extraVector[PARTICLE_EXTRA_OUTPUT_ORIENT][1] = thetaY * ( 180.0 / MY_PI );
+        v_extraVector[PARTICLE_EXTRA_OUTPUT_ORIENT][2] = thetaZ * ( 180.0 / MY_PI );
+
+        for( S32 dim = 0 ; dim < SYSTEM_DIMENSION ; dim++ ) {
+                CHECK( ( v_extraVector[PARTICLE_EXTRA_OUTPUT_ORIENT][dim] >= -180.0 ) && ( v_extraVector[PARTICLE_EXTRA_OUTPUT_ORIENT][dim] <= 180.0 ) );
+                if( v_extraVector[PARTICLE_EXTRA_OUTPUT_ORIENT][dim] < 0.0 ) {
+                        v_extraVector[PARTICLE_EXTRA_OUTPUT_ORIENT][dim] += 360.0;
+                }
+                CHECK( ( v_extraVector[PARTICLE_EXTRA_OUTPUT_ORIENT][dim] >= 0.0 ) || ( v_extraVector[PARTICLE_EXTRA_OUTPUT_ORIENT][dim] < 360.0 ) );
+        }
+
 
 	/* MODEL END */
 

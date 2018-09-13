@@ -24,14 +24,73 @@ typedef enum _cell_type_e {
         NUM_CELL_TYPES
 } cell_type_e;
 
-/* One diffusible element to act as chemoattractant */
+/* Real values associated with cells */
+typedef enum _agent_state_real_e {
+  AGENT_STATE_REAL_UNDEFORMED_ELLIPSOID_A,
+  AGENT_STATE_REAL_UNDEFORMED_ELLIPSOID_B,
+  AGENT_STATE_REAL_UNDEFORMED_ELLIPSOID_C,
+  AGENT_STATE_REAL_ELLIPSOID_A,
+  AGENT_STATE_REAL_ELLIPSOID_B,
+  AGENT_STATE_REAL_ELLIPSOID_C,
+  AGENT_STATE_REAL_ROTATIONAL_QUATERNION_A,
+  AGENT_STATE_REAL_ROTATIONAL_QUATERNION_B,
+  AGENT_STATE_REAL_ROTATIONAL_QUATERNION_C,
+  AGENT_STATE_REAL_ROTATIONAL_QUATERNION_D,
+  AGENT_STATE_REAL_MASS,
+  AGENT_STATE_REAL_YOUNGS_MODULUS,
+  AGENT_STATE_REAL_POISSONS_RATIO,
+  NUM_AGENT_STATE_REALS
+} agent_state_real_e;
+
+/* Int values associated with cells */
+typedef enum _agent_state_int_e {
+  NUM_AGENT_STATE_INTS
+} agent_state_int_e;
+
+/* Internal reals */
+typedef enum _agent_state_internal_real_e {
+  AGENT_STATE_INTERNAL_REAL_BODY_FIXED_NORMAL_STRESS_X,
+  AGENT_STATE_INTERNAL_REAL_BODY_FIXED_NORMAL_STRESS_Y,
+  AGENT_STATE_INTERNAL_REAL_BODY_FIXED_NORMAL_STRESS_Z,
+  AGENT_STATE_INTERNAL_REAL_STAGGERED_VELOCITY_X,
+  AGENT_STATE_INTERNAL_REAL_STAGGERED_VELOCITY_Y,
+  AGENT_STATE_INTERNAL_REAL_STAGGERED_VELOCITY_Z,
+  AGENT_STATE_INTERNAL_REAL_BODY_FIXED_STAGGERED_ANGULAR_VELOCITY_X,
+  AGENT_STATE_INTERNAL_REAL_BODY_FIXED_STAGGERED_ANGULAR_VELOCITY_Y,
+  AGENT_STATE_INTERNAL_REAL_BODY_FIXED_STAGGERED_ANGULAR_VELOCITY_Z,
+  NUM_AGENT_STATE_INTERNAL_REALS
+} agent_state_internal_real_e;
+
+/* Internal ints */
+typedef enum _agent_state_internal_int_e {
+ NUM_AGENT_STATE_INTERNAL_INTS
+} agent_state_internal_int_e;
+
+/* Mechanical stuff */
+typedef enum _agent_mech_real_e {
+  AGENT_MECH_REAL_FORCE_X,
+  AGENT_MECH_REAL_FORCE_Y,
+  AGENT_MECH_REAL_FORCE_Z,
+  AGENT_MECH_REAL_MOMENT_X,
+  AGENT_MECH_REAL_MOMENT_Y,
+  AGENT_MECH_REAL_MOMENT_Z,
+  AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_LOW_X,
+  AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_HIGH_X,
+  AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_LOW_Y,
+  AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_HIGH_Y,
+  AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_LOW_Z,
+  AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_HIGH_Z,
+  NUM_AGENT_MECH_REALS
+} agent_mech_real_e;
+
+/* Two diffusible elements to act as chemoattractants */
 typedef enum _diffusible_elem_e {
         DIFFUSIBLE_ELEM_CHEMOATTRACTANT,
         NUM_DIFFUSIBLE_ELEMS
 } diffusible_elem_e;
 
 /* Number of cells used in this model */
-const S32 A_INI_N_CELLS[NUM_CELL_TYPES] = { 300, 0 };
+const S32 A_INI_N_CELLS[NUM_CELL_TYPES] = { 1000, 1000 };
 
 /* Fixed radius of the cells used in the model */
 const REAL A_CELL_RADIUS[NUM_CELL_TYPES] = { 1.0, 1.0 };
@@ -43,7 +102,6 @@ typedef enum _grid_summary_real_e {
         NUM_GRID_SUMMARY_REALS
 } grid_summary_real_e;
 
-
 /* A Uniform Random Number Generator. One should not use c++ function, rand(), as it is not thread-safe
  Instead, users should use Biocellion's built-in RNG */
 typedef enum _model_rng_type_e {
@@ -51,6 +109,11 @@ typedef enum _model_rng_type_e {
         MODEL_RNG_GAUSSIAN,
         NUM_MODEL_RNGS
 } model_rng_type_e;
+
+typedef enum _extra_scalar_e {
+  PARTICLE_EXTRA_OUTPUT_RADIUS,
+  NUM_PARTICLE_EXTRA_OUTPUT_SCALAR_VARS
+} extra_scalar_e;
 
 /* Infomation needed to render spheres as ellipsoids  */
 typedef enum _extra_vector_e {
@@ -71,16 +134,16 @@ const S32 NUM_STATE_AND_GRID_TIME_STEPS_PER_BASELINE = 1;
 
 /* Required variables for chemotaxis */
 const REAL DIFFUSIBLE_ELEM_DECAY_RATE[NUM_DIFFUSIBLE_ELEMS] = { 0.1 };
-const REAL DIFFUSIBLE_ELEM_DIFFUSION_COEFFICIENT[NUM_DIFFUSIBLE_ELEMS] = { 1.0 };
+const REAL DIFFUSIBLE_ELEM_DIFFUSION_COEFFICIENT[NUM_DIFFUSIBLE_ELEMS] = { 0.5 };
 const REAL A_CELL_CHEMOATTRACTANT_SECRETION_RATE[NUM_CELL_TYPES] = { 0.2, 0 };
-const REAL A_CELL_CHEMOTAXIS_FORCE_STRENGTH[NUM_CELL_TYPES] = { 1.0, 0 };
+const REAL A_CELL_CHEMOTAXIS_FORCE_STRENGTH[NUM_CELL_TYPES] = { 0.4, -0.1 };
 
 /* Mechanical Interaction Force Constant */
 typedef enum _cell_mech_real_e {
   CELL_MECH_REAL_FORCE_X,/* shoving & adhesion */
   CELL_MECH_REAL_FORCE_Y,/* shoving & adhesion */
   CELL_MECH_REAL_FORCE_Z,/* shoving & adhesion */
-          NUM_CELL_MECH_REALS
+  NUM_CELL_MECH_REALS
 } cell_mech_real_e;
 
 /* Cell Adhesion Constant */
@@ -90,7 +153,20 @@ const REAL A_CELL_ADHESION = 0.5;
 const REAL A_CELL_SPRING_CONSTANT = 0.05;
 
 /* Cell diffusion coefficient */
-const REAL A_CELL_DIFFUSION_COEFF[NUM_CELL_TYPES] = { 0.005, 0.005 };
+const REAL A_CELL_DIFFUSION_COEFF[NUM_CELL_TYPES] = { 0.002, 0.002 };
+
+/* Ellipsoid mechanics */
+const S32 MECH_INTRCT_ELLIPSOID_MAX_ITERS = 100;
+const REAL MECH_INTRCT_ELLIPSOID_EPSILON = 1e-10;
+
+const REAL AGENT_TRANSLATION_ROTATION_PSEUDO_TIME_STEP_DURATION = 0.001;
+const S32 AGENT_TRANSLATION_ROTATION_INTEGRATION_STEPS_PER_BASELINE_TIME_STEP = (S32) ROUND( BASELINE_TIME_STEP_DURATION / 0.001);
+const REAL AGENT_ARTIFICIAL_LINEAR_DRAG_COEFF_SCALE_FACTOR = 200;
+const REAL AGENT_TRANSLATION_MAX_DISPLACEMENT_PER_BASELINE_TIME_STEP = 0.1;
+const REAL AGENT_ARTIFICIAL_ANGULAR_DRAG_COEFF_SCALE_FACTOR = 10.0;
+const REAL AGENT_ROTATION_MAX_ANGULAR_DISPLACEMENT_PER_BASELINE_TIME_STEP = (MY_PI / 180.0 ) * 5.0;
+
+const BOOL A_PERIODIC_DOMAIN[DIMENSION] = { true, true, true };
 
 /* MODEL END */
 

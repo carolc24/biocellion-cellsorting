@@ -19,11 +19,11 @@ using namespace std;
 void ModelRoutine::initIfGridVar( const VIdx& vIdx, const UBAgentData& ubAgentData, UBEnv& ubEnv ) {
 	/* MODEL START */
 
-  CHECK( ubEnv.getPhiArray().size() == NUM_DIFFUSIBLE_ELEMS);
+  CHECK( ubEnv.getIfGridPhiArray().size() == NUM_DIFFUSIBLE_ELEMS);
   //CHECK( ubEnv.getModelRealArray().size() == NUM_GRID_SUMMARY_REALS);
   //CHECK( ubEnv.getModelIntArray().size() == 0);
 
-  ubEnv.setPhi(DIFFUSIBLE_ELEM_CHEMOATTRACTANT, 0.0);
+  ubEnv.setIfGridPhi(DIFFUSIBLE_ELEM_CHEMOATTRACTANT, 0.0);
 
   /* for( S32 elemIdx = 0 ; elemIdx < NUM_GRID_SUMMARY_REALS ; elemIdx++ ) {
     ubEnv.setModelReal(elemIdx, 0.0);
@@ -48,14 +48,14 @@ void ModelRoutine::updateIfGridVar( const BOOL pre, const S32 iter, const VIdx& 
 
   if (pre) {
     for (S32 elemIdx = 0; elemIdx < NUM_DIFFUSIBLE_ELEMS; elemIdx++ ) {
-      REAL phi = nbrUBEnv.getPhi(0, 0, 0, elemIdx);
-      const UBAgentData& ubAgentData = *(nbrUBAgentData.getConstPtr(0, 0, 0));
-      for(ubAgentIdx_t l = 0; l < (ubAgentIdx_t)ubAgentData.v_spAgent.size(); l++) {
-	const SpAgent& spAgent = ubAgentData.v_spAgent[l];
-	S32 agentType = spAgent.state.getType();
-	phi += A_CELL_CHEMOATTRACTANT_SECRETION_RATE[agentType];
-      }
-      nbrUBEnv.setPhi(0, 0, 0, elemIdx, phi);
+	REAL phi = nbrUBEnv.getIfGridPhi(0, 0, 0, elemIdx);
+	const UBAgentData& ubAgentData = *(nbrUBAgentData.getConstPtr(0, 0, 0));
+	for(U16 l = 0; l < (U16)ubAgentData.v_spAgent.size(); l++) {
+	  const SpAgent& spAgent = ubAgentData.v_spAgent[l];
+	  S32 agentType = spAgent.state.getType();
+	  phi += A_CELL_CHEMOATTRACTANT_SECRETION_RATE[agentType];
+	}
+	nbrUBEnv.setIfGridPhi(0, 0, 0, elemIdx, phi);
     }
   }
 
@@ -72,6 +72,14 @@ void ModelRoutine::updateIfSubgridKappa( const S32 pdeIdx, const VIdx& vIdx, con
 	/* MODEL END */
 
 	return;
+}
+
+void ModelRoutine::updateIfSubgridKappaDomainBdry( const S32 pdeIdx, const S32 dim, const VIdx& vIdx, const VIdx& ifSubgridVOffset, const UBAgentData& ubAgentData, const UBEnv& ubEnv, REAL& kappa ) {
+
+  kappa = 1.0;
+
+  return;
+
 }
 
 void ModelRoutine::updateIfSubgridAlpha( const S32 elemIdx, const VIdx& vIdx, const VIdx& subgridVOffset, const UBAgentData& ubAgentData, const UBEnv& ubEnv, REAL& gridAlpha/* decay (-) */ ) {
@@ -156,7 +164,7 @@ void ModelRoutine::updateIfGridAMRTags( const VIdx& vIdx, const NbrUBAgentData& 
 	return;
 }
 
-void ModelRoutine::updateIfGridDirichletBCVal( const S32 elemIdx, const VReal& pos, const S32 dim, const BOOL lowSide, const UBEnvModelVar a_ubEnvModelVar[3], const Vector<REAL> av_gridPhi[3]/* av_gridPhi[].size() == ratio * raito * ratio (ratio = Info::envAuxDataInfo.v_phiRatioFromIfGridToIfSubgrid[elemIdx]), use VIdx::getIdx3DTo1D() to index */, REAL& bcVal ) {
+void ModelRoutine::updateIfSubgridDirichletBCVal( const S32 elemIdx, const S32 dim, const VIdx& vIdx, const VIdx& ifSubgridVOffset, const UBAgentData& ubAgentData, const UBEnv& ubEnv, REAL& bdryPhi) {
 	/* MODEL START */
 
 	ERROR( "unimplemented." );
@@ -166,123 +174,12 @@ void ModelRoutine::updateIfGridDirichletBCVal( const S32 elemIdx, const VReal& p
 	return;
 }
 
-void ModelRoutine::updateIfGridNeumannBCVal( const S32 elemIdx, const VReal& pos, const S32 dim, const BOOL lowSide, const UBEnvModelVar a_ubEnvModelVar[3], const Vector<REAL> av_gridPhi[3]/* av_gridPhi[].size() == ratio * raito * ratio (ratio = Info::envAuxDataInfo.v_phiRatioFromIfGridToIfSubgrid[elemIdx]), use VIdx::getIdx3DTo1D() to index */, REAL& bcVal ) {
+void ModelRoutine::updateIfSubgridNeumannBCVal( const S32 elemIdx, const S32 dim, const VIdx& vIdx, const VIdx& ifSubgridVOffset, const UBAgentData& ubAgentData, const UBEnv& ubEnv, REAL& bdrySlope) {
 	/* MODEL START */
 
-	ERROR( "unimplemented." );
+  bdrySlope = 0.0;
 
 	/* MODEL END */
 
 	return;
 }
-
-void ModelRoutine::initPDEBufferPhi( const S32 pdeIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, Vector<REAL>& v_gridPhi/* [idx] */ ) {
-	/* MODEL START */
-
-  CHECK(v_gridPhi.size() == 0);
-
-	/* MODEL END */
-
-	return;
-}
-
-void ModelRoutine::initPDEBufferKappa( const S32 pdeIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, REAL& gridKappa ) {/* relevant only if v_gridPhiOutputDivideByKappa[pdeIdx] is set to true in updateFileOutputInfo() */
-	/* MODEL START */
-
-	ERROR( "unimplemented." );
-
-	/* MODEL END */
-
-	return;
-}
-
-void ModelRoutine::updatePDEBufferKappa( const S32 pdeIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, REAL& gridKappa ) {
-	/* MODEL START */
-
-	ERROR( "unimplemented." );
-
-	/* MODEL END */
-
-	return;
-}
-
-void ModelRoutine::updatePDEBufferAlpha( const S32 elemIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, REAL& gridAlpha/* decay (-) */ ) {
-	/* MODEL START */
-
-	ERROR( "unimplemented." );
-
-	/* MODEL END */
-
-	return;
-}
-
-void ModelRoutine::updatePDEBufferBetaInPDEBufferRegion( const S32 elemIdx, const S32 dim, const VIdx& startVIdx0, const VIdx& startVIdx1, const VIdx& pdeBufferBoxSize, REAL& gridBeta ) {
-	/* MODEL START */
-
-	ERROR( "unimplemented." );
-
-	/* MODEL END */
-
-	return;
-}
-
-void ModelRoutine::updatePDEBufferBetaDomainBdry( const S32 elemIdx, const S32 dim, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, REAL& gridBeta ) {
-	/* MODEL START */
-
-	ERROR( "unimplemented." );
-
-	/* MODEL END */
-
-	return;
-}
-
-void ModelRoutine::updatePDEBufferRHSLinear( const S32 elemIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, const REAL gridPhi, REAL& gridRHS/* uptake(-) and secretion (+) */ ) {
-	/* MODEL START */
-
-	ERROR( "unimplemented." );
-
-	/* MODEL END */
-
-	return;
-}
-
-void ModelRoutine::adjustPDEBufferRHSTimeDependentLinear( const S32 elemIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, const REAL gridPhi, REAL& gridRHS/* INOUT */ ) {
-	/* MODEL START */
-
-	ERROR( "unimplemented." );
-
-	/* MODEL END */
-
-	return;
-}
-
-void ModelRoutine::updatePDEBufferRHSTimeDependentSplitting( const S32 pdeIdx, const VIdx& startVIdx, const VIdx& pdeBufferBoxSize, const Vector<double>& v_gridPhi/* [idx] */, Vector<double>& v_gridRHS/* [idx], uptake(-) and secretion (+) */ ) {
-	/* MODEL START */
-
-	ERROR( "unimplemented." );
-
-	/* MODEL END */
-
-	return;
-}
-
-void ModelRoutine::updatePDEBufferDirichletBCVal( const S32 elemIdx, const VReal& startPos, const VReal& pdeBufferFaceSize, const S32 dim, const BOOL lowSide, REAL& bcVal ) {
-	/* MODEL START */
-
-	ERROR( "unimplmented." );
-
-	/* MODEL END */
-
-	return;
-}
-
-void ModelRoutine::updatePDEBufferNeumannBCVal( const S32 elemIdx, const VReal& startPos, const VReal& pdeBufferFaceSize, const S32 dim, const BOOL lowSide, REAL& bcVal ) {
-	/* MODEL START */
-
-	ERROR( "unimplmented." );
-
-	/* MODEL END */
-
-	return;
-}
-
