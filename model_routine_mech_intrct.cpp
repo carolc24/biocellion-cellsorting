@@ -87,15 +87,16 @@ void ModelRoutine::computeMechIntrctSpAgent( const S32 iter, const VIdx& vIdx0, 
 
   if (e0.overlaps( e1, vDir * -1.0, dist) == true) {
     //printf("Overlap detected\n");
-    VReal vPos;
+    VReal vPos0;
+    VReal vPos1;
 
     vForce = computeOvlpForce( spAgent0.state, spAgent1.state, e0, e1, equivMinPotentialVPointOnE0, equivMinPotentialVPointOnE0FromE1, equivMinPotentialVPointOnE1, equivMinPotentialVPointOnE1FromE0);
 
-     vPos = ( equivMinPotentialVPointOnE0 + equivMinPotentialVPointOnE1FromE0) * 0.5;
-     vMoment0 = VReal::crossProduct( vPos, vForce);
+     vPos0 = ( equivMinPotentialVPointOnE0 + equivMinPotentialVPointOnE1FromE0) * 0.5;
+     vMoment0 = VReal::crossProduct( vPos0, vForce);
 
-     vPos = ( equivMinPotentialVPointOnE1 + equivMinPotentialVPointOnE0FromE1) * 0.5;
-     vMoment1 = VReal::crossProduct( vPos, vForce*-1.0);
+     vPos1 = ( equivMinPotentialVPointOnE1 + equivMinPotentialVPointOnE0FromE1) * 0.5;
+     vMoment1 = VReal::crossProduct( vPos1, vForce*-1.0);
 
      closerThanEquilibriumDist = true;
   } else {
@@ -115,7 +116,113 @@ void ModelRoutine::computeMechIntrctSpAgent( const S32 iter, const VIdx& vIdx0, 
   mechIntrctData1.setModelReal( AGENT_MECH_REAL_MOMENT_X, vMoment1[0] );
   mechIntrctData1.setModelReal( AGENT_MECH_REAL_MOMENT_Y, vMoment1[1] );
   mechIntrctData1.setModelReal( AGENT_MECH_REAL_MOMENT_Z, vMoment1[2] );
-  /* MODEL END */
+  
+  if( vForce.lengthSquare() > 0.0 ) {
+    e0.vScale = vScale0;
+    e1.vScale = vScale1;
+
+    //if( A_AGENT_DEFORMABLE[type0] == true ) {/* deformation */
+      VReal normalVForce;
+      VReal normalVDir;
+      VReal intersectingVPos;
+
+      Quaternion qTmp;
+
+      if( vPos0.lengthSquare() > 0.0 ) {
+	intersectingVPos = e0.getIntersectingPointOn( VReal::normalize( vPos0 ) );
+
+	CHECK( FABS( 1.0 - e0.qRot.norm() ) < REAL_EPSILON * 1e1 );/* to assure q^-1 == q^* */
+	qTmp = Quaternion::qStarpq( Quaternion( 0.0, intersectingVPos ), e0.qRot );/* now in the body-fixed frame */
+	intersectingVPos = qTmp.getImg();
+
+	normalVDir[0] = ( 2.0 * intersectingVPos[0] ) / ( e0.vScale[0] * e0.vScale[0] );
+	normalVDir[1] = ( 2.0 * intersectingVPos[1] ) / ( e0.vScale[1] * e0.vScale[1] );
+	normalVDir[2] = ( 2.0 * intersectingVPos[2] ) / ( e0.vScale[2] * e0.vScale[2] );
+	normalVDir = VReal::normalize( normalVDir );
+	CHECK( FABS( 1.0 - normalVDir.length() ) < REAL_EPSILON * 1e1 );
+
+	normalVForce = vForce;
+	CHECK( FABS( 1.0 - e0.qRot.norm() ) < REAL_EPSILON * 1e1 );/* to assure q^-1 == q^* */
+	qTmp = Quaternion::qStarpq( Quaternion( 0.0, normalVForce ), e0.qRot );/* now in the body-fixed frame */
+	normalVForce = qTmp.getImg();
+
+	normalVForce = normalVDir * normalVDir.dotProduct( normalVForce );
+
+	if( intersectingVPos[0] < 0.0 ) {/* low side */
+	  mechIntrctData0.incModelReal( AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_LOW_X, normalVForce[0] );
+	}
+	else if( intersectingVPos[0] > 0.0 ) {/* high side */
+	  mechIntrctData0.incModelReal( AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_HIGH_X, normalVForce[0] );
+	}
+
+	if( intersectingVPos[1] < 0.0 ) {/* low side */
+	  mechIntrctData0.incModelReal( AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_LOW_Y, normalVForce[1] );
+	}
+	else if( intersectingVPos[1] > 0.0 ) {/* high side */
+	  mechIntrctData0.incModelReal( AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_HIGH_Y, normalVForce[1] );
+	}
+
+	if( intersectingVPos[2] < 0.0 ) {/* low side */
+	  mechIntrctData0.incModelReal( AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_LOW_Z, normalVForce[2] );
+	}
+	else if( intersectingVPos[2] > 0.0 ) {/* high side */
+	  mechIntrctData0.incModelReal( AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_HIGH_Z, normalVForce[2] );
+	}
+      }
+      //}
+
+      //if( A_AGENT_DEFORMABLE[type1] == true ) {/* deformation */
+      //VReal normalVForce;
+      //VReal normalVDir;
+      //VReal intersectingVPos;
+
+      //Quaternion qTmp;
+
+      if( vPos1.lengthSquare() > 0.0 ) {
+	intersectingVPos = e1.getIntersectingPointOn( VReal::normalize( vPos1 ) );
+
+	CHECK( FABS( 1.0 - e1.qRot.norm() ) < REAL_EPSILON * 1e1 );/* to assure q^-1 == q^* */
+	qTmp = Quaternion::qStarpq( Quaternion( 0.0, intersectingVPos ), e1.qRot );/* now in the body-fixed frame */
+	intersectingVPos = qTmp.getImg();
+
+	normalVDir[0] = ( 2.0 * intersectingVPos[0] ) / ( e1.vScale[0] * e1.vScale[0] );
+	normalVDir[1] = ( 2.0 * intersectingVPos[1] ) / ( e1.vScale[1] * e1.vScale[1] );
+	normalVDir[2] = ( 2.0 * intersectingVPos[2] ) / ( e1.vScale[2] * e1.vScale[2] );
+	normalVDir = VReal::normalize( normalVDir );
+	CHECK( FABS( 1.0 - normalVDir.length() ) < REAL_EPSILON * 1e1 );
+
+	normalVForce = vForce * -1.0;
+	CHECK( FABS( 1.0 - e1.qRot.norm() ) < REAL_EPSILON * 1e1 );/* to assure q^-1 == q^* */
+	qTmp = Quaternion::qStarpq( Quaternion( 0.0, normalVForce ), e1.qRot );/* now in the body-fixed frame */
+	normalVForce = qTmp.getImg();
+
+	normalVForce = normalVDir * normalVDir.dotProduct( normalVForce );
+
+	if( intersectingVPos[0] < 0.0 ) {/* low side */
+	  mechIntrctData1.incModelReal( AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_LOW_X, normalVForce[0] );
+	}
+	else if( intersectingVPos[0] > 0.0 ) {/* high side */
+	  mechIntrctData1.incModelReal( AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_HIGH_X, normalVForce[0] );
+	}
+
+	if( intersectingVPos[1] < 0.0 ) {/* low side */
+	  mechIntrctData1.incModelReal( AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_LOW_Y, normalVForce[1] );
+	}
+	else if( intersectingVPos[1] > 0.0 ) {/* high side */
+	  mechIntrctData1.incModelReal( AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_HIGH_Y, normalVForce[1] );
+	}
+
+	if( intersectingVPos[2] < 0.0 ) {/* low side */
+	  mechIntrctData1.incModelReal( AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_LOW_Z, normalVForce[2] );
+	}
+	else if( intersectingVPos[2] > 0.0 ) {/* high side */
+	  mechIntrctData1.incModelReal( AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_HIGH_Z, normalVForce[2] );
+	}
+      }
+
+      //}
+  }
+/* MODEL END */
 
   return;
   

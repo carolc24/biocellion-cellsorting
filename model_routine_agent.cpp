@@ -640,7 +640,226 @@ static void computeAgentTranslationRotationAndDeformation(const VReal& vPos, con
   state.setModelReal( AGENT_STATE_REAL_ROTATIONAL_QUATERNION_B, qRot.getImgI());
   state.setModelReal( AGENT_STATE_REAL_ROTATIONAL_QUATERNION_C, qRot.getImgJ());
   state.setModelReal( AGENT_STATE_REAL_ROTATIONAL_QUATERNION_D, qRot.getImgK());
+
+    VReal undeformedVScale;
+    VReal oldNormalVStress;
+
+    VReal lowNormalVForce;
+    VReal highNormalVForce;
+
+    REAL a_stretchRatio[DIMENSION];
+    REAL E;
+    REAL nu;
+
+    VReal normalVForce;
+    VReal normalVStress;
+    VReal vDiff;
+
+    undeformedVScale[0] = state.getModelReal( AGENT_STATE_REAL_UNDEFORMED_ELLIPSOID_A );
+    undeformedVScale[1] = state.getModelReal( AGENT_STATE_REAL_UNDEFORMED_ELLIPSOID_B );
+    undeformedVScale[2] = state.getModelReal( AGENT_STATE_REAL_UNDEFORMED_ELLIPSOID_C );
+
+    oldNormalVStress[0] = state.getInternalModelReal( AGENT_STATE_INTERNAL_REAL_BODY_FIXED_NORMAL_STRESS_X );
+    oldNormalVStress[1] = state.getInternalModelReal( AGENT_STATE_INTERNAL_REAL_BODY_FIXED_NORMAL_STRESS_Y );
+    oldNormalVStress[2] = state.getInternalModelReal( AGENT_STATE_INTERNAL_REAL_BODY_FIXED_NORMAL_STRESS_Z );
+
+    lowNormalVForce[0] = mechIntrctData.getModelReal( AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_LOW_X );
+    lowNormalVForce[1] = mechIntrctData.getModelReal( AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_LOW_Y );
+    lowNormalVForce[2] = mechIntrctData.getModelReal( AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_LOW_Z );
+    highNormalVForce[0] = mechIntrctData.getModelReal( AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_HIGH_X );
+    highNormalVForce[1] = mechIntrctData.getModelReal( AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_HIGH_Y );
+    highNormalVForce[2] = mechIntrctData.getModelReal( AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_HIGH_Z );
+
+    for( S32 dim = 0 ; dim < DIMENSION ; dim++ ) {
+      a_stretchRatio[dim] = vScale[dim] / undeformedVScale[dim];
+      CHECK( a_stretchRatio[dim] > 0.0 );
+    }
+
+    E = state.getModelReal( AGENT_STATE_REAL_YOUNGS_MODULUS );
+    nu = state.getModelReal( AGENT_STATE_REAL_POISSONS_RATIO );
+    if( nu < 1e-2 ) {
+      WARNING( "id=" << junctionData.getCurId() << " type=" << type << ", nu (" << nu << ") is too small, and this routine may not be numerically stable." );
+    }
+
+    for( S32 dim = 0 ; dim < DIMENSION ; dim++ ) {
+      REAL low = lowNormalVForce[dim] * -1.0;/* -:compression, +:tension */
+      REAL high = highNormalVForce[dim];/* -:compression, +:tension */
+      if( low * high > 0.0 ) {
+	if( low < 0.0 ) {/* compression */
+	  normalVForce[dim] = FMAX( low, high );
+	}
+	else {/* tension */
+	  normalVForce[dim] = FMIN( low, high );
+	}
+      }
+      else {
+	normalVForce[dim] = 0.0;
+      }
+    }
+
+    for( S32 dim = 0 ; dim < DIMENSION ; dim++ ) {
+      normalVStress[dim] = normalVForce[dim] / ( vScale[( dim + 1 ) % DIMENSION] * vScale[( dim + 2 ) % DIMENSION] );/* this should be close to true stress assuming that vScale changes only slowly per baseline time-step */
+    }
+    vDiff = normalVStress - oldNormalVStress;
+
+    if( vDiff.length() > E * AGENT_DEFORMATION_NORMAL_STRESS_LARGE_DIFF_RATIO ) {
+      REAL scale = ( E * AGENT_DEFORMATION_NORMAL_STRESS_LARGE_DIFF_RATIO ) / vDiff.length();
+      vDiff *= scale;
+      normalVStress = oldNormalVStress + vDiff * AGENT_DEFORMATION_NORMAL_STRESS_SMOOTHING_RATE;
+    }
+    else if( vDiff.length() < E * AGENT_DEFORMATION_NORMAL_STRESS_TINY_DIFF_RATIO ) {
+      normalVStress = oldNormalVStress + vDiff;
+    }
+    else {
+      normalVStress = oldNormalVStress + vDiff * AGENT_DEFORMATION_NORMAL_STRESS_SMOOTHING_RATE;
+    }
+
+    computeStretchRatio( junctionData, E, nu, normalVStress, a_stretchRatio );
+
+    for( S32 dim = 0 ; dim < DIMENSION ; dim++ ) {
+      REAL oldScale = vScale[dim];
+      REAL newScale = undeformedVScale[dim] * a_stretchRatio[dim];
+      CHECK( a_stretchRatio[dim] > 0.0 );
+      CHECK( oldScale > 0.0 );
+      CHECK( newScale > 0.0 );
+      if( FABS( newScale / oldScale - 1.0 ) > AGENT_DEFORMATION_MAX_STRETCH_RATIO_CHANGE_PER_BASELINE_TIME_STEP ) {
+	WARNING( "id=" << junctionData.getCurId() << " type=" << type << ", too large smoothing rate (" << AGENT_DEFORMATION_NORMAL_STRESS_SMOOTHING_RATE << "), new strain / old strain (" << ( newScale / oldScale ) << ", dim=" << dim << ") is too large." );
+      }
+      vScale[dim] = newScale;
+    }
+
+    state.setModelReal( AGENT_STATE_REAL_ELLIPSOID_A, vScale[0] );
+    state.setModelReal( AGENT_STATE_REAL_ELLIPSOID_B, vScale[1] );
+    state.setModelReal( AGENT_STATE_REAL_ELLIPSOID_C, vScale[2] );
+    state.setInternalModelReal( AGENT_STATE_INTERNAL_REAL_BODY_FIXED_NORMAL_STRESS_X, normalVStress[0] );
+    state.setInternalModelReal( AGENT_STATE_INTERNAL_REAL_BODY_FIXED_NORMAL_STRESS_Y, normalVStress[1] );
+    state.setInternalModelReal( AGENT_STATE_INTERNAL_REAL_BODY_FIXED_NORMAL_STRESS_Z, normalVStress[2] );
     
 }
 #endif
 
+static void computeStretchRatio( const JunctionData& junctionData, const REAL E, const REAL nu, const VReal& normalVStress, REAL a_stretchRatio[DIMENSION]/* [INOUT] */ ) {
+#if INCLUDE_DEFORMATION_HOOKS_LAW
+  for( S32 dim = 0 ; dim < DIMENSION ; dim++ ) {
+    REAL trueStrain = ( 1 / E ) * ( normalVStress[dim] - nu * ( normalVStress[( dim + 1 ) % DIMENSION] + normalVStress[( dim + 2 ) % DIMENSION] ) );
+    a_stretchRatio[dim] = EXP( trueStrain );
+  }
+#elif INCLUDE_DEFORMATION_NEO_HOOKEAN
+  REAL C1 = E / ( 4.0 * ( 1.0 + nu ) );
+  REAL initNorm = REAL_MAX;
+  REAL norm = REAL_MAX;
+  S32 iters = 0;
+  SquareMatrix3 matJInv;/* inverse matrix of Jacobian */
+  CHECK( nu <= 0.5 );
+  if( nu >= AGENT_DEFORMATION_INCOMPRESSIBLE_MIN_POISSONS_RATIO ) {/* incompressible */
+    while( iters < AGENT_DEFORMATION_NEWTONS_METHOD_MAX_ITERS ) {/* Newton's method to solve a system of non-linear equations (unknowns: a_stretchRatio[0], a_stretchRatio[1], a_stretchRatio[2] */
+      VReal vF;
+      VReal vTmp;
+
+      /* update vF */
+
+      vF[0] = normalVStress[0] - normalVStress[2] - 2.0 * C1 * ( a_stretchRatio[0] * a_stretchRatio[0] - a_stretchRatio[2] * a_stretchRatio[2] ); 
+      vF[1] = normalVStress[1] - normalVStress[2] - 2.0 * C1 * ( a_stretchRatio[1] * a_stretchRatio[1] - a_stretchRatio[2] * a_stretchRatio[2] ); 
+      vF[2] = a_stretchRatio[0] * a_stretchRatio[1] * a_stretchRatio[2] - 1.0;
+
+      norm = vF.length();
+      if( iters == 0 ) {
+	initNorm = norm;
+      }
+
+      if( ( iters >= AGENT_DEFORMATION_NEWTONS_METHOD_MAX_ITERS ) || ( norm < initNorm * AGENT_DEFORMATION_NEWTONS_METHOD_EPSILON_INIT_NORM ) || ( norm < E * AGENT_DEFORMATION_NEWTONS_METHOD_EPSILON_E ) || ( norm < AGENT_DEFORMATION_NEWTONS_METHOD_NORM_THRESHOLD ) ) {/* convergence */
+	break;
+      }
+      else {
+	/* update matJInv */
+
+	matJInv.aa_val[0][0] = -4.0 * C1 * a_stretchRatio[0];
+	matJInv.aa_val[0][1] = 0.0;
+	matJInv.aa_val[0][2] = 4.0 * C1 * a_stretchRatio[2];
+
+	matJInv.aa_val[1][0] = 0.0;
+	matJInv.aa_val[1][1] = -4.0 * C1 * a_stretchRatio[1];
+	matJInv.aa_val[1][2] = 4.0 * C1 * a_stretchRatio[2];
+
+	matJInv.aa_val[2][0] = a_stretchRatio[1] * a_stretchRatio[2];
+	matJInv.aa_val[2][1] = a_stretchRatio[2] * a_stretchRatio[0];
+	matJInv.aa_val[2][2] = a_stretchRatio[0] * a_stretchRatio[1];
+
+	CHECK( FABS( matJInv.determinant() ) > 0.0 );
+	matJInv.invert();
+
+	/* update a_stretchRatio */
+
+	vTmp = matJInv.mult( vF );
+	for( S32 dim = 0 ; dim < DIMENSION ; dim++ ) {
+	  a_stretchRatio[dim] -= vTmp[dim];
+	  CHECK( a_stretchRatio[dim] > 0.0 );
+	}
+      }
+
+      iters++;
+    }
+  }
+  else {
+    REAL D1 = ( E * nu ) / ( 2.0 * ( ( 1.0 + nu ) * ( 1.0 - 2.0 * nu ) ) );
+    while( iters < AGENT_DEFORMATION_NEWTONS_METHOD_MAX_ITERS ) {/* Newton's method to solve a system of non-linear equations (unknowns: a_stretchRatio[0], a_stretchRatio[1], a_stretchRatio[2] */
+      VReal vF;
+      VReal vTmp;
+      REAL norm;
+      REAL J;
+      REAL I1;
+
+      /* update vF */
+
+      J = a_stretchRatio[0] * a_stretchRatio[1] * a_stretchRatio[2];
+      I1 = a_stretchRatio[0] * a_stretchRatio[0] + a_stretchRatio[1] * a_stretchRatio[1] + a_stretchRatio[2] * a_stretchRatio[2];
+
+      vF[0] = normalVStress[0] - normalVStress[2] - 2.0 * C1 * POW( J, -5.0 / 3.0 ) * ( a_stretchRatio[0] * a_stretchRatio[0] - a_stretchRatio[2] * a_stretchRatio[2] );
+      vF[1] = normalVStress[1] - normalVStress[2] - 2.0 * C1 * POW( J, -5.0 / 3.0 ) * ( a_stretchRatio[1] * a_stretchRatio[1] - a_stretchRatio[2] * a_stretchRatio[2] );
+      vF[2] = normalVStress[2] - 2.0 * C1 * POW( J, -5.0 / 3.0 ) * ( a_stretchRatio[2] * a_stretchRatio[2] - I1 / 3.0 ) - 2.0 * D1 * ( J - 1.0 );
+
+      norm = vF.length();
+      if( iters == 0 ) {
+	initNorm = norm;
+      }
+
+      if( ( iters >= AGENT_DEFORMATION_NEWTONS_METHOD_MAX_ITERS ) || ( norm < initNorm * AGENT_DEFORMATION_NEWTONS_METHOD_EPSILON_INIT_NORM ) || ( norm < E * AGENT_DEFORMATION_NEWTONS_METHOD_EPSILON_E ) || ( norm < AGENT_DEFORMATION_NEWTONS_METHOD_NORM_THRESHOLD ) ) {/* convergence */
+	break;
+      }
+      else {
+	/* update matJInv */
+
+	matJInv.aa_val[0][0] = -2.0 * C1 * ( ( -5.0 / 3.0 ) * POW( J, -8.0 / 3.0 ) * ( a_stretchRatio[1] * a_stretchRatio[2] ) * ( a_stretchRatio[0] * a_stretchRatio[0] - a_stretchRatio[2] * a_stretchRatio[2] ) + POW( J, -5.0 / 3.0 ) * ( 2.0 * a_stretchRatio[0] ) );
+	matJInv.aa_val[0][1] = -2.0 * C1 * ( ( -5.0 / 3.0 ) * POW( J, -8.0 / 3.0 ) * ( a_stretchRatio[2] * a_stretchRatio[0] ) * ( a_stretchRatio[0] * a_stretchRatio[0] - a_stretchRatio[2] * a_stretchRatio[2] ) + POW( J, -5.0 / 3.0 ) * ( -2.0 * a_stretchRatio[1] ) );
+	matJInv.aa_val[0][2] = -2.0 * C1 * ( -5.0 / 3.0 ) * POW( J, -8.0 / 3.0 ) * ( a_stretchRatio[0] * a_stretchRatio[1] ) * ( a_stretchRatio[0] * a_stretchRatio[0] - a_stretchRatio[2] * a_stretchRatio[2] );
+
+	matJInv.aa_val[1][0] = -2.0 * C1 * ( -5.0 / 3.0 ) * POW( J, -8.0 / 3.0 ) * ( a_stretchRatio[1] * a_stretchRatio[2] ) * ( a_stretchRatio[1] * a_stretchRatio[1] - a_stretchRatio[2] * a_stretchRatio[2] );
+	matJInv.aa_val[1][1] = -2.0 * C1 * ( ( -5.0 / 3.0 ) * POW( J, -8.0 / 3.0 ) * ( a_stretchRatio[2] * a_stretchRatio[0] ) * ( a_stretchRatio[1] * a_stretchRatio[1] - a_stretchRatio[2] * a_stretchRatio[2] ) + POW( J, -5.0 / 3.0 ) * ( 2.0 * a_stretchRatio[1] ) );
+	matJInv.aa_val[1][2] = -2.0 * C1 * ( ( -5.0 / 3.0 ) * POW( J, -8.0 / 3.0 ) * ( a_stretchRatio[0] * a_stretchRatio[1] ) * ( a_stretchRatio[1] * a_stretchRatio[1] - a_stretchRatio[2] * a_stretchRatio[2] ) + POW( J, -5.0 / 3.0 ) * ( -2.0 * a_stretchRatio[2] ) );
+
+	matJInv.aa_val[2][0] = -2.0 * C1 * ( ( -5.0 / 3.0 ) * POW( J, -8.0 / 3.0 ) * ( a_stretchRatio[1] * a_stretchRatio[2] ) * ( a_stretchRatio[2] * a_stretchRatio[2] - I1 / 3.0 ) + POW( J, -5.0 / 3.0 ) * ( ( -2.0 / 3.0 ) * a_stretchRatio[0] ) ) - 2.0 * D1 * ( a_stretchRatio[1] * a_stretchRatio[2] );
+	matJInv.aa_val[2][1] = -2.0 * C1 * ( ( -5.0 / 3.0 ) * POW( J, -8.0 / 3.0 ) * ( a_stretchRatio[2] * a_stretchRatio[0] ) * ( a_stretchRatio[2] * a_stretchRatio[2] - I1 / 3.0 ) + POW( J, -5.0 / 3.0 ) * ( ( -2.0 / 3.0 ) * a_stretchRatio[1] ) ) - 2.0 * D1 * ( a_stretchRatio[2] * a_stretchRatio[0] );
+	matJInv.aa_val[2][2] = -2.0 * C1 * ( ( -5.0 / 3.0 ) * POW( J, -8.0 / 3.0 ) * ( a_stretchRatio[0] * a_stretchRatio[1] ) * ( a_stretchRatio[2] * a_stretchRatio[2] - I1 / 3.0 ) + POW( J, -5.0 / 3.0 ) * ( ( 4.0 / 3.0 ) * a_stretchRatio[2] ) ) - 2.0 * D1 * ( a_stretchRatio[0] * a_stretchRatio[1] );
+
+	CHECK( FABS( matJInv.determinant() ) > 0.0 );
+	matJInv.invert();
+
+	/* update a_stretchRatio */
+
+	vTmp = matJInv.mult( vF );
+	for( S32 dim = 0 ; dim < DIMENSION ; dim++ ) {
+	  a_stretchRatio[dim] -= vTmp[dim];
+	  CHECK( a_stretchRatio[dim] > 0.0 );
+	}
+      }
+
+      iters++;
+    }
+  }
+
+  if( iters >= AGENT_DEFORMATION_NEWTONS_METHOD_MAX_ITERS ) {
+    WARNING( "id=" << junctionData.getCurId() << ", max iteration(" << AGENT_DEFORMATION_NEWTONS_METHOD_MAX_ITERS << ") count reached, initNorm=" << initNorm << " norm=" << norm );
+  } 
+}
+  return;
+}
