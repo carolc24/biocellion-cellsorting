@@ -22,9 +22,10 @@ using namespace std;
 
 #if HAS_SPAGENT
 
-static void computeAgentTranslationRotationAndDeformation( const VReal& vPos, const MechIntrctData& mechIntrctData, SpAgentState& state, VReal fwdDir, REAL chemForce, VReal& vDisp);
+static void computeAgentTranslationRotationAndDeformation( const VReal& vPos, const MechIntrctData& mechIntrctData, const JunctionData& junctionData, SpAgentState& state, VReal fwdDir, REAL chemForce, VReal& vDisp);
 static void integrateTranslation( const VReal& vForce, VReal& oldStaggeredVLinear, VReal& vDisp, VReal& oldVDisp, Ellipsoid e, REAL m, REAL t);
 static void integrateRotation( Quaternion& qMoment, const VReal& vMoment, VReal& oldStaggeredVAngular, Quaternion& qRot, double* a_inertia, REAL artificialAngularDragCoeff, REAL t);
+static void computeStretchRatio( const JunctionData& junctionData, const REAL E, const REAL nu, const VReal& normalVStress, REAL a_stretchRatio[DIMENSION]);
 void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VIdx& regionSize, const IfGridBoxData<BOOL>& ifGridHabitableBoxData, Vector<VIdx>& v_spAgentVIdx, Vector<SpAgentState>& v_spAgentState, Vector<VReal>& v_spAgentOffset ) {/* initialization */
 	/* MODEL START */
 
@@ -226,7 +227,7 @@ void ModelRoutine::adjustSpAgent( const VIdx& vIdx, const JunctionData& junction
   /* Calculate chemotactic force vector and apply displacement if any */
   REAL chemForce = A_CELL_CHEMOTAXIS_FORCE_STRENGTH[state.getType()] * (fwdVal - bckVal); 
 
-  computeAgentTranslationRotationAndDeformation(vPos, mechIntrctData, state, fwdDir, chemForce, vDisp);
+  computeAgentTranslationRotationAndDeformation(vPos, mechIntrctData, junctionData, state, fwdDir, chemForce, vDisp);
 
   VReal vScale;
   Quaternion qRot;
@@ -453,7 +454,7 @@ static void integrateRotation(Quaternion& qMoment, const VReal& vMoment, VReal& 
     qRot = newQRot;
 }
 
-static void computeAgentTranslationRotationAndDeformation(const VReal& vPos, const MechIntrctData& mechIntrctData, SpAgentState& state, VReal fwdDir, REAL chemForce, VReal& vDisp) {
+static void computeAgentTranslationRotationAndDeformation(const VReal& vPos, const MechIntrctData& mechIntrctData, const JunctionData& junctionData, SpAgentState& state, VReal fwdDir, REAL chemForce, VReal& vDisp) {
 
   agentType_t type = state.getType();
 
@@ -861,5 +862,6 @@ static void computeStretchRatio( const JunctionData& junctionData, const REAL E,
     WARNING( "id=" << junctionData.getCurId() << ", max iteration(" << AGENT_DEFORMATION_NEWTONS_METHOD_MAX_ITERS << ") count reached, initNorm=" << initNorm << " norm=" << norm );
   } 
 }
+#endif
   return;
 }

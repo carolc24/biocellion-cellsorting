@@ -54,6 +54,8 @@ void ModelRoutine::computeMechIntrctSpAgent( const S32 iter, const VIdx& vIdx0, 
   VReal vForce;
   VReal vMoment0;
   VReal vMoment1;
+  VReal vPos0;
+  VReal vPos1;
 
   VReal equivMinPotentialVPointOnE0;
   VReal equivMinPotentialVPointOnE0FromE1;
@@ -77,6 +79,8 @@ void ModelRoutine::computeMechIntrctSpAgent( const S32 iter, const VIdx& vIdx0, 
   vForce = VReal::ZERO;
   vMoment0 = VReal::ZERO;
   vMoment1 = VReal::ZERO;
+  vPos0 = VReal::ZERO;
+  vPos1 = VReal::ZERO;
 
   e0.vScale = vScale0;
   e1.vScale = vScale1;
@@ -87,8 +91,6 @@ void ModelRoutine::computeMechIntrctSpAgent( const S32 iter, const VIdx& vIdx0, 
 
   if (e0.overlaps( e1, vDir * -1.0, dist) == true) {
     //printf("Overlap detected\n");
-    VReal vPos0;
-    VReal vPos1;
 
     vForce = computeOvlpForce( spAgent0.state, spAgent1.state, e0, e1, equivMinPotentialVPointOnE0, equivMinPotentialVPointOnE0FromE1, equivMinPotentialVPointOnE1, equivMinPotentialVPointOnE1FromE0);
 
