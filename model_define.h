@@ -90,7 +90,7 @@ typedef enum _diffusible_elem_e {
 } diffusible_elem_e;
 
 /* Number of cells used in this model */
-const S32 A_INI_N_CELLS[NUM_CELL_TYPES] = { 1000, 1000 };
+const S32 A_INI_N_CELLS[NUM_CELL_TYPES] = { 1, 1 };
 
 /* Fixed radius of the cells used in the model */
 const REAL A_CELL_RADIUS[NUM_CELL_TYPES] = { 1.0, 1.0 };
@@ -133,10 +133,10 @@ const REAL BASELINE_TIME_STEP_DURATION = 1.0;
 const S32 NUM_STATE_AND_GRID_TIME_STEPS_PER_BASELINE = 1;
 
 /* Required variables for chemotaxis */
-const REAL DIFFUSIBLE_ELEM_DECAY_RATE[NUM_DIFFUSIBLE_ELEMS] = { 0.1 };
-const REAL DIFFUSIBLE_ELEM_DIFFUSION_COEFFICIENT[NUM_DIFFUSIBLE_ELEMS] = { 0.5 };
-const REAL A_CELL_CHEMOATTRACTANT_SECRETION_RATE[NUM_CELL_TYPES] = { 0.2, 0 };
-const REAL A_CELL_CHEMOTAXIS_FORCE_STRENGTH[NUM_CELL_TYPES] = { 0.4, -0.1 };
+const REAL DIFFUSIBLE_ELEM_DECAY_RATE[NUM_DIFFUSIBLE_ELEMS] = { 0 };
+const REAL DIFFUSIBLE_ELEM_DIFFUSION_COEFFICIENT[NUM_DIFFUSIBLE_ELEMS] = { 0 };
+const REAL A_CELL_CHEMOATTRACTANT_SECRETION_RATE[NUM_CELL_TYPES] = { 0, 0 };
+const REAL A_CELL_CHEMOTAXIS_FORCE_STRENGTH[NUM_CELL_TYPES] = { 0, 0 };
 
 /* Mechanical Interaction Force Constant */
 typedef enum _cell_mech_real_e {

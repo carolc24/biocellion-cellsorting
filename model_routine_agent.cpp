@@ -37,65 +37,34 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
 	  S32 numACells = A_INI_N_CELLS[0];
 	  S32 numBCells = A_INI_N_CELLS[1];
 	  S32 N = numACells + numBCells;
-	  REAL cellDistance = POW((REAL) (regionSize[0] * regionSize[1] * regionSize[2]) / N, 1.0/3.0);
-	  printf("Cell distance: %f\n", cellDistance);
 
 	  //for( S32 i = 0 ; i < NUM_CELL_TYPES ; i++ ){
 
                         /* Loop over all the initialized cells */
                         for( S32 j = 0 ; j < N; j++ ){
-                                VIdx vIdx;                                              // The location of each cell defined by the unit box index, and position offset.
-                                VReal vOffset;                                          // Poisition offset is the vector distance from the center of the unit box.
-                                SpAgentState state;
-
-
-				//vIdx[0] = startVIdx[0] + (idx_t) (j * cellDistance) % regionSize[0];
-				//vIdx[1] = startVIdx[1] + (idx_t) (cellDistance * (j * cellDistance) / regionSize[0]) % regionSize[1];
-				//vIdx[2] = startVIdx[2] + (idx_t) (cellDistance * cellDistance * (j * cellDistance)) / (regionSize[0] * regionSize[1]);
-				/* Random grid location and offset within grid */
-				for (S32 dim = 0; dim < SYSTEM_DIMENSION; dim++) {
-				  //vIdx[dim] = startVIdx[dim] + (idx_t) ( (REAL)regionSize[dim] * (1.0 + Util::getModelRand(MODEL_RNG_UNIFORM)) * 0.25 );
-				  vIdx[dim] = startVIdx[dim] + (idx_t) (( REAL)regionSize[dim] * Util::getModelRand(MODEL_RNG_UNIFORM) );
-				  if (vIdx[dim] < startVIdx[dim]) {
-				    vIdx[dim] = startVIdx[dim];
-				  } else if (vIdx[dim] >= startVIdx[dim] + regionSize[dim]) {
-				    vIdx[dim] = startVIdx[dim] + regionSize[dim] - 1;
-				  }
-
-				  vOffset[dim] = IF_GRID_SPACING * -0.5 + IF_GRID_SPACING * Util::getModelRand(MODEL_RNG_UNIFORM);
-				  if (vOffset[dim] < IF_GRID_SPACING * -0.5) {
-				    vOffset[dim] = -0.5 * IF_GRID_SPACING;
-				  } else if (vOffset[dim] > IF_GRID_SPACING * 0.5) {
-				    vOffset[dim] = 0.5 * IF_GRID_SPACING;
-				  }
-				}
-
+                                VIdx vIdx;
+				VReal vOffset;
 				
-				
+				vIdx[0] = 0;
+				vIdx[1] = 0;
+				vIdx[2] = regionSize * j;
+
+				vOffset = VReal::ZERO;
+								
                                 /* Initialize states of each cell */
 				VReal vScale;
 				Quaternion qRot;
-				REAL density;
 				REAL E;
 				REAL nu;
-				S32 i;
 
-				E = 112.0;  // yeast from that 2000 paper: about 112
+				E = 1e6;
 				nu = 0.5;  // incompressible
-				density = 0.25;
-				if (Util::getModelRand(MODEL_RNG_UNIFORM) < (REAL) numACells/(numACells + numBCells)) {
-				  i = 0;
-				  numACells--;
-				} else {
-				  i = 1;
-				  numBCells--;
-				}
 				
 				vScale = { A_CELL_RADIUS[i], A_CELL_RADIUS[i], 0.5 * A_CELL_RADIUS[i] };
 				qRot.set(1.0, Util::getModelRand(MODEL_RNG_UNIFORM), Util::getModelRand(MODEL_RNG_UNIFORM), Util::getModelRand(MODEL_RNG_UNIFORM));
 				qRot = Quaternion::normalize(qRot);
 				
-                                state.setType(i);                                                     
+                                state.setType(j);                                                     
                                 state.setModelReal(AGENT_STATE_REAL_UNDEFORMED_ELLIPSOID_A, vScale[0]);
 				state.setModelReal(AGENT_STATE_REAL_UNDEFORMED_ELLIPSOID_B, vScale[1]);
 				state.setModelReal(AGENT_STATE_REAL_UNDEFORMED_ELLIPSOID_C, vScale[2]);
@@ -492,6 +461,9 @@ static void computeAgentTranslationRotationAndDeformation(const VReal& vPos, con
   vForce[0] = mechIntrctData.getModelReal(AGENT_MECH_REAL_FORCE_X) + chemForce * fwdDir[0];
   vForce[1] = mechIntrctData.getModelReal(AGENT_MECH_REAL_FORCE_Y) + chemForce * fwdDir[1];
   vForce[2] = mechIntrctData.getModelReal(AGENT_MECH_REAL_FORCE_Z) + chemForce * fwdDir[2];
+
+  if (state.getType() == 0) vForce[2] += 1.0;
+  if (state.getType() == 1) vForce[2] -= 1.0;
 
   vMoment[0] = mechIntrctData.getModelReal(AGENT_MECH_REAL_MOMENT_X);
   vMoment[1] = mechIntrctData.getModelReal(AGENT_MECH_REAL_MOMENT_Y);

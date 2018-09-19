@@ -35,7 +35,7 @@ void ModelRoutine::updateOptModelRoutineCallInfo( OptModelRoutineCallInfo& callI
 	/* MODEL START */
 
   callInfo.numComputeMechIntrctIters = 1;
-  callInfo.numUpdateIfGridVarPreStateAndGridStepIters = 1;
+  callInfo.numUpdateIfGridVarPreStateAndGridStepIters = 0;
   callInfo.numUpdateIfGridVarPostStateAndGridStepIters = 0;
 
 	/* MODEL END */
