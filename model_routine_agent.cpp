@@ -34,34 +34,40 @@ void ModelRoutine::addSpAgents( const BOOL init, const VIdx& startVIdx, const VI
       		/* Place initial cells on the Simulation Domain. 
                  When init is True, the placement occurs at the beginning of the Simulation */
 
-	  S32 numACells = A_INI_N_CELLS[0];
-	  S32 numBCells = A_INI_N_CELLS[1];
-	  S32 N = numACells + numBCells;
+	  //S32 numACells = A_INI_N_CELLS[0];
+	  //S32 numBCells = A_INI_N_CELLS[1];
+	  //S32 N = numACells + numBCells;
 
 	  //for( S32 i = 0 ; i < NUM_CELL_TYPES ; i++ ){
 
                         /* Loop over all the initialized cells */
-                        for( S32 j = 0 ; j < N; j++ ){
+	  for( S32 j = 0 ; j < 2; j++ ){
                                 VIdx vIdx;
 				VReal vOffset;
 				
-				vIdx[0] = 0;
-				vIdx[1] = 0;
-				vIdx[2] = regionSize * j;
+				vIdx[0] = startVIdx[0];
+				vIdx[1] = startVIdx[1];
+				vIdx[2] = startVIdx[2] + (regionSize[2] - 1) * j;
 
-				vOffset = VReal::ZERO;
+				vOffset[0] = 0.0;
+				vOffset[1] = 0.0;
+				vOffset[2] = 0.0;
 								
                                 /* Initialize states of each cell */
 				VReal vScale;
 				Quaternion qRot;
 				REAL E;
 				REAL nu;
-
-				E = 1e6;
-				nu = 0.5;  // incompressible
+				REAL density;
+				SpAgentState state;
 				
-				vScale = { A_CELL_RADIUS[i], A_CELL_RADIUS[i], 0.5 * A_CELL_RADIUS[i] };
-				qRot.set(1.0, Util::getModelRand(MODEL_RNG_UNIFORM), Util::getModelRand(MODEL_RNG_UNIFORM), Util::getModelRand(MODEL_RNG_UNIFORM));
+				E = 1e1;
+				nu = 0.5;  // incompressible
+				density = 0.25;
+				
+				vScale = { A_CELL_RADIUS[j], A_CELL_RADIUS[j], 0.5 * A_CELL_RADIUS[j] };
+				//qRot.set(1.0, Util::getModelRand(MODEL_RNG_UNIFORM), Util::getModelRand(MODEL_RNG_UNIFORM), Util::getModelRand(MODEL_RNG_UNIFORM));
+				qRot.set(1.0, 0.0, 0.0, 0.0);
 				qRot = Quaternion::normalize(qRot);
 				
                                 state.setType(j);                                                     
@@ -154,7 +160,7 @@ void ModelRoutine::adjustSpAgent( const VIdx& vIdx, const JunctionData& junction
   for(S32 dim = 0; dim < DIMENSION; dim++) {
     vPos[dim] = ((REAL)vIdx[dim] + 0.5) * IF_GRID_SPACING + vOffset[dim];
   }
-
+  printf("Position: %f, %f, %f\n", vPos[0], vPos[1], vPos[2]);
   
         /* Find a random unit vector */
   VReal fwdDir;
@@ -462,8 +468,8 @@ static void computeAgentTranslationRotationAndDeformation(const VReal& vPos, con
   vForce[1] = mechIntrctData.getModelReal(AGENT_MECH_REAL_FORCE_Y) + chemForce * fwdDir[1];
   vForce[2] = mechIntrctData.getModelReal(AGENT_MECH_REAL_FORCE_Z) + chemForce * fwdDir[2];
 
-  if (state.getType() == 0) vForce[2] += 1.0;
-  if (state.getType() == 1) vForce[2] -= 1.0;
+  if (state.getType() == 0) vForce[2] += 5.0;
+  if (state.getType() == 1) vForce[2] -= 5.0;
 
   vMoment[0] = mechIntrctData.getModelReal(AGENT_MECH_REAL_MOMENT_X);
   vMoment[1] = mechIntrctData.getModelReal(AGENT_MECH_REAL_MOMENT_Y);
@@ -509,8 +515,8 @@ static void computeAgentTranslationRotationAndDeformation(const VReal& vPos, con
     timeElapsed += curTimeStep;
     
     integrateTranslation(vForce, oldStaggeredVLinear, vDisp, oldVDisp, e, m, curTimeStep);  // One whole step (vDisp = r_h)
-    integrateTranslation(vForce, tmpVLinear, tmpVDisp, tmpOldVDisp, e, m, curTimeStep / 2); 
-    integrateTranslation(vForce, tmpVLinear, tmpVDisp, tmpOldVDisp, e, m, curTimeStep / 2);  // Two half steps (tmpVDisp = r_h/2)
+    //integrateTranslation(vForce, tmpVLinear, tmpVDisp, tmpOldVDisp, e, m, curTimeStep / 2); 
+    // integrateTranslation(vForce, tmpVLinear, tmpVDisp, tmpOldVDisp, e, m, curTimeStep / 2);  // Two half steps (tmpVDisp = r_h/2)
 
     /* error = 0.0;
     for (int i=0; i<DIMENSION; i++) {
@@ -573,10 +579,10 @@ static void computeAgentTranslationRotationAndDeformation(const VReal& vPos, con
     timeElapsed += curTimeStep;
     
     integrateRotation(qMoment, vMoment, oldStaggeredVAngular, qRot, a_inertia, artificialAngularDragCoeff, curTimeStep);
-    integrateRotation(tmpQMoment, vMoment, tmpVAngular, tmpQRot, a_inertia, artificialAngularDragCoeff, curTimeStep / 2);
-    integrateRotation(tmpQMoment, vMoment, tmpVAngular, tmpQRot, a_inertia, artificialAngularDragCoeff, curTimeStep / 2);
+    //integrateRotation(tmpQMoment, vMoment, tmpVAngular, tmpQRot, a_inertia, artificialAngularDragCoeff, curTimeStep / 2);
+    //integrateRotation(tmpQMoment, vMoment, tmpVAngular, tmpQRot, a_inertia, artificialAngularDragCoeff, curTimeStep / 2);
 
-    error = 0.0;
+    /*error = 0.0;
     error += POW(qRot.getReal() - tmpQRot.getReal(), 2);
     error += POW(qRot.getImgI() - tmpQRot.getImgI(), 2);
     error += POW(qRot.getImgJ() - tmpQRot.getImgJ(), 2);
@@ -590,7 +596,7 @@ static void computeAgentTranslationRotationAndDeformation(const VReal& vPos, con
 
     tmpQRot = qRot;
     tmpVAngular = oldStaggeredVAngular;
-    tmpQMoment = qMoment;
+    tmpQMoment = qMoment;*/
   }
 
   dotProdSquare = orgQRot.dotProduct(qRot);
@@ -643,6 +649,8 @@ static void computeAgentTranslationRotationAndDeformation(const VReal& vPos, con
     highNormalVForce[1] = mechIntrctData.getModelReal( AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_HIGH_Y );
     highNormalVForce[2] = mechIntrctData.getModelReal( AGENT_MECH_REAL_BODY_FIXED_NORMAL_FORCE_HIGH_Z );
 
+    if (state.getType() == 0) lowNormalVForce[2] += 5.0;
+    if (state.getType() == 1) highNormalVForce[2] -= 5.0;
     for( S32 dim = 0 ; dim < DIMENSION ; dim++ ) {
       a_stretchRatio[dim] = vScale[dim] / undeformedVScale[dim];
       CHECK( a_stretchRatio[dim] > 0.0 );
@@ -658,6 +666,7 @@ static void computeAgentTranslationRotationAndDeformation(const VReal& vPos, con
       REAL low = lowNormalVForce[dim] * -1.0;/* -:compression, +:tension */
       REAL high = highNormalVForce[dim];/* -:compression, +:tension */
       if( low * high > 0.0 ) {
+	//printf("Deforming.....");
 	if( low < 0.0 ) {/* compression */
 	  normalVForce[dim] = FMAX( low, high );
 	}
@@ -686,12 +695,13 @@ static void computeAgentTranslationRotationAndDeformation(const VReal& vPos, con
     else {
       normalVStress = oldNormalVStress + vDiff * AGENT_DEFORMATION_NORMAL_STRESS_SMOOTHING_RATE;
     }
-
+    printf("Stress: %f\n", normalVStress[2]);
     computeStretchRatio( junctionData, E, nu, normalVStress, a_stretchRatio );
 
     for( S32 dim = 0 ; dim < DIMENSION ; dim++ ) {
       REAL oldScale = vScale[dim];
       REAL newScale = undeformedVScale[dim] * a_stretchRatio[dim];
+      printf("Stretch ratio: %f, %f, %f\n", a_stretchRatio[0], a_stretchRatio[1], a_stretchRatio[2]);
       CHECK( a_stretchRatio[dim] > 0.0 );
       CHECK( oldScale > 0.0 );
       CHECK( newScale > 0.0 );
@@ -833,7 +843,6 @@ static void computeStretchRatio( const JunctionData& junctionData, const REAL E,
   if( iters >= AGENT_DEFORMATION_NEWTONS_METHOD_MAX_ITERS ) {
     WARNING( "id=" << junctionData.getCurId() << ", max iteration(" << AGENT_DEFORMATION_NEWTONS_METHOD_MAX_ITERS << ") count reached, initNorm=" << initNorm << " norm=" << norm );
   } 
-}
 #endif
   return;
 }

@@ -18,11 +18,11 @@ Biocellion has three main components.
 <!-- time_step, set the number of baseline time steps, required
 	num_baseline: number of baseline (to simulate 1-2 and 2) time steps, required, integer, [1,)
 -->
-<time_step start="0" end="500"/>
+<time_step start="0" end="2000"/>
 <!-- domain, parameters describing the simulation domain
 x(, y, or z): simulation grid size in the x(, y, or z) direction, x(, y, or z) % partition_size must be zero or equal to or larger than max(4 (minimum partition size), refine_ratio^(number of AMR levels - 1) * 2 (minimum box size)), and x(, y, or z) should be an integer multiple of refine_ratio^(number of AMR levels - 1), required, integer, [4,)
 -->
-<domain x="16" y="8" z="8"/>
+<domain x="4" y="4" z="4"/>
 <!-- init_data, parameters related to initial cell and grid data, required
         partition_size: partition size, partition_size should be equl to or larger than 4 (minimum parition size), positive integer multiple of refine_ratio^(interface grid level in AMR), and equal to or larger than refine_ratio^(interface grid level in AMR) * 2 (minimum box sizse), required, integer, [4,)
         src: initial cell and grid data source, set to code to initialize inside the model code, set to file to read from files, required, code|file
@@ -39,7 +39,7 @@ x(, y, or z): simulation grid size in the x(, y, or z) direction, x(, y, or z) %
         start_x(, y, or z): output box offset in the x(, y, or z) direction, must be an integer multiple of refine_ratio^(number of AMR levels - 1), required, integer, [1,)
         size_x(, y, or z): output box size in the x(, y, or z) direction, must be an integer multiple of refine_ratio^(number of AMR levels - 1), required, integer, [1,)
 -->
-<output path="./output" particle="pvtp" grid="vthb" start_x="0" start_y="0" start_z="0" size_x="16" size_y="8" size_z="8"/>
+<output path="./output" particle="pvtp" grid="vthb" start_x="0" start_y="0" start_z="0" size_x="4" size_y="4" size_z="4"/>
 
 </required>
 
